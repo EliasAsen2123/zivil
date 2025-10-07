@@ -10,7 +10,7 @@
   <script src="./openseadragon/openseadragon.min.js"></script>
   <script src="detect-browser.js"></script>
   <script>
-    const info = getBrowser?.() || {};
+    const info = (typeof getBrowser === "function" && getBrowser()) || {};
     if (["Microsoft Edge","Safari","Internet Explorer"].includes(info.browser)) {
       window.location = "index_ie.html";
     }
@@ -28,7 +28,7 @@
     body{
       font-family:"circular",Arial,sans-serif;
       background:#f3f3f3;
-      overflow:hidden; /* wichtig: kein Scrollen, Bühne skaliert */
+      overflow:hidden; /* Bühne skaliert, keine Scrollbars */
       padding:
         max(env(safe-area-inset-top),0px)
         max(env(safe-area-inset-right),0px)
@@ -36,21 +36,21 @@
         max(env(safe-area-inset-left),0px);
     }
 
-    /* === feste Desktop-Bühne, die wir skalieren === */
+    /* === feste Desktop-Bühne, die wir skaliert & zentriert anzeigen === */
     .stage-wrap{
+      position:relative;
       width:100%;
       height:100%;
-      display:flex;
-      align-items:flex-start;
-      justify-content:flex-start;
-      /* Zentrieren, falls Bühnengröße kleiner als Viewport skaliert wird */
+      overflow:hidden;
+      background:#f3f3f3;
     }
 
-    /* „Bühne“ in Desktop-Maßen (wird via transform skaliert) */
+    /* „Bühne“ in Desktop-Maßen (wird via transform skaliert/verschoben) */
     .stage{
-      position:relative;
-      width: 1340px;     /* BASE_LEFT_WIDTH + CIRCLE_DIAMETER (s.u.) */
-      height: 820px;     /* Basis-Höhe, Desktop-Anmutung */
+      position:absolute; /* wichtig für translate() */
+      width: 1340px;     /* BASE_LEFT_WIDTH + CIRCLE_DIAMETER */
+      height: 820px;     /* Basis-Höhe */
+      left: 0; top: 0;
       transform-origin: top left;
       will-change: transform;
     }
@@ -149,27 +149,35 @@
   </div>
 
   <script>
-    /* ===== 1) Bühnenskalierung: sorgt dafür, dass die Desktop-Bühne
-             auf JEDEM Handy exakt gleich aussieht ===== */
-
+    /* ===== 1) Bühnenskalierung & Zentrierung ===== */
     const BASE = {
       LEFT_WIDTH: 520,           // px
       CIRCLE: 820,               // Durchmesser
-      STAGE_W: 520+820,          // 1340
+      STAGE_W: 520 + 820,        // 1340
       STAGE_H: 820               // 820
     };
 
     const stage = document.getElementById('stage');
 
-    function fitStageToViewport(){
-      const vw = window.innerWidth  - (parseInt(getComputedStyle(document.body).paddingLeft) + parseInt(getComputedStyle(document.body).paddingRight));
-      const vh = window.innerHeight - (parseInt(getComputedStyle(document.body).paddingTop)  + parseInt(getComputedStyle(document.body).paddingBottom));
+    // 'contain' = komplett sichtbar; 'cover' = füllt Screen (kann außerhalb liegen)
+    const FILL_MODE = 'contain';
 
-      // Skaliere so, dass die ganze Bühne in den Viewport passt
+    function fitStageToViewport(){
+      const cs = getComputedStyle(document.body);
+      const vw = window.innerWidth  - (parseInt(cs.paddingLeft) + parseInt(cs.paddingRight));
+      const vh = window.innerHeight - (parseInt(cs.paddingTop)  + parseInt(cs.paddingBottom));
+
       const sx = vw / BASE.STAGE_W;
       const sy = vh / BASE.STAGE_H;
-      const scale = Math.min(sx, sy, 1); // nie größer als 1 (Desktopgröße)
-      stage.style.transform = `scale(${scale})`;
+      const scale = (FILL_MODE === 'cover') ? Math.max(sx, sy) : Math.min(sx, sy, 1);
+
+      const usedW = BASE.STAGE_W * scale;
+      const usedH = BASE.STAGE_H * scale;
+      const offsetX = Math.max(0, (vw - usedW) / 2);
+      const offsetY = Math.max(0, (vh - usedH) / 2);
+
+      stage.style.transformOrigin = 'top left';
+      stage.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
     }
 
     window.addEventListener('resize', () => { fitStageToViewport(); viewer?.forceRedraw(); });
@@ -236,7 +244,7 @@
       el.addEventListener('touchstart', handler, { passive:false });
       el.addEventListener('click', handler);
 
-      // WICHTIG: tatsächlich hinzufügen
+      // tatsächlich zum Viewer hinzufügen
       viewer.addOverlay({
         element: el,
         location: new OpenSeadragon.Point(normalizedX, normalizedY),
@@ -266,4 +274,3 @@
   </script>
 </body>
 </html>
-
