@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <title>Wimmelbild - Plan:g</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#769b60" />
+    
+    <!--COPY ME INTO HEAD-->
+    <script src="./openseadragon/openseadragon.min.js"></script>
+    <!--COPY ME INTO HEAD-->
+    <script src="detect-browser.js"></script>
+    <script type="text/javascript">
+      var info = getBrowser();
+      console.log(info);
+      if (
+        info.browser === "Microsoft Edge" ||
+        info.browser === "Safari" ||
+        info.browser === "Internet Explorer"
+      ) {
+        window.location = "index_ie.html";
+      }
+    </script>
+    <style>
+      @font-face {
+        font-family: "circular";
+        src: url("src/lineto-circular-book.woff") format("woff");
+        font-weight: normal;
+      }
+      * {
+        margin: 0px;
+        padding: 0px;
+        box-sizing: border-box;
+      }
+      html {
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        position: relative;
+        overflow: hidden;
+        background-color: #f3f3f3;
+        height: 100vh;
+        width: 100vw;
+        font-family: "circular", Arial, sans-serif;
+      }
+      
+      #myContainer {
+        width: 100%;
+        height: 100vh;
+        background-color: #769b60;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 500;
+      }
+      
+      /* Mobile Header */
+      .mobile-header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: rgba(118, 155, 96, 0.95);
+        padding: 10px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      
+      .logo-mobile {
+        height: 30px;
+        width: auto;
+      }
+      
+      .close-btn {
+        width: 30px;
+        height: 30px;
+        background-image: url("img/cancel.png");
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        cursor: pointer;
+        border: none;
+        background-color: transparent;
+      }
+      
+      /* Mobile Navigation */
+      .mobile-nav {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: rgba(118, 155, 96, 0.95);
+        padding: 15px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .nav-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      
+      .nav-btn {
+        flex: 1;
+        min-width: 120px;
+        background-color: #789f40;
+        color: white;
+        border: none;
+        padding: 12px 8px;
+        font-family: "circular", Arial, sans-serif;
+        font-size: 14px;
+        font-weight: bold;
+        text-transform: uppercase;
+        text-decoration: none;
+        text-align: center;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+        cursor: pointer;
+      }
+      
+      .nav-btn:hover, .nav-btn:active {
+        background-color: #870184;
+      }
+      
+      .language-mobile {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 10px;
+      }
+      
+      .flag-mobile {
+        width: 25px;
+        height: 18px;
+        background-size: cover;
+        cursor: pointer;
+        border-radius: 2px;
+      }
+      
+      .flag-mobile.de {
+        background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg");
+      }
+      
+      .flag-mobile.en {
+        background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg");
+      }
+      
+      /* Hotspot Styles */
+      .hotspot-overlay {
+        width: 15px;
+        height: 15px;
+        background-size: cover;
+        background-repeat: no-repeat;
+        cursor: pointer;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        transition: transform 0.2s;
+      }
+      
+      .hotspot-overlay:hover, .hotspot-overlay:active {
+        transform: scale(1.2);
+      }
+      
+      /* Popup Styles */
+      .popup {
+        max-width: 80vw;
+        max-height: 60vh;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        overflow: hidden;
+      }
+      
+      .popup img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      
+      /* Mobile specific adjustments */
+      @media (max-width: 480px) {
+        .mobile-header {
+          padding: 8px 10px;
+        }
+        
+        .logo-mobile {
+          height: 25px;
+        }
+        
+        .close-btn {
+          width: 25px;
+          height: 25px;
+        }
+        
+        .mobile-nav {
+          padding: 10px;
+        }
+        
+        .nav-btn {
+          font-size: 12px;
+          padding: 10px 6px;
+          min-width: 100px;
+        }
+        
+        .hotspot-overlay {
+          width: 12px;
+          height: 12px;
+        }
+      }
+      
+      /* Landscape orientation */
+      @media (orientation: landscape) and (max-height: 500px) {
+        .mobile-header {
+          padding: 5px 10px;
+        }
+        
+        .logo-mobile {
+          height: 20px;
+        }
+        
+        .mobile-nav {
+          padding: 8px;
+          flex-direction: row;
+          align-items: center;
+        }
+        
+        .nav-buttons {
+          flex: 1;
+        }
+        
+        .language-mobile {
+          margin-top: 0;
+          margin-left: 10px;
+        }
+      }
+    </style>
+    <!-- Matomo -->
+    <script type="text/javascript">
+      var _paq = window._paq || [];
+      /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+      _paq.push(["trackPageView"]);
+      _paq.push(["enableLinkTracking"]);
+      (function() {
+        var u = "//weltgesundheit.org/analytics/";
+        _paq.push(["setTrackerUrl", u + "matomo.php"]);
+        _paq.push(["setSiteId", "1"]);
+        var d = document,
+          g = d.createElement("script"),
+          s = d.getElementsByTagName("script")[0];
+        g.type = "text/javascript";
+        g.async = true;
+        g.defer = true;
+        g.src = u + "matomo.js";
+        s.parentNode.insertBefore(g, s);
+      })();
+    </script>
+    <!-- End Matomo Code -->
+  </head>
+  <body>
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+      <img src="img/logo.png" class="logo-mobile" alt="Plan:g Logo" />
+      <button class="close-btn" onclick="window.location.href='index.html'" aria-label="Schließen"></button>
+    </div>
+    
+    <!-- Main Container -->
+    <div id="myContainer"></div>
+    
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav">
+      <div class="nav-buttons">
+        <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" class="nav-btn">
+          Dieses Poster
+        </a>
+        <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" class="nav-btn">
+          Unsere Arbeit
+        </a>
+        <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" class="nav-btn">
+          Informiert bleiben
+        </a>
+      </div>
+      <div class="language-mobile">
+        <a href="https://weltgesundheit.org" class="flag-mobile de" title="Deutsch"></a>
+        <a href="https://weltgesundheit.org/en/" class="flag-mobile en" title="English"></a>
+      </div>
+    </div>
+    
+    <script>
+      // OpenSeadragon Viewer für mobile Geräte
+      var viewer = OpenSeadragon({
+        id: "myContainer",
+        prefixUrl: "openseadragon/images/",
+        tileSources: {
+          type: "image",
+          width: 5787,
+          height: 7722,
+          url: "./img/wimmelbildfinal.jpg",
+          minLevel: 0,
+          maxLevel: 5,
+          buildPyramid: true,
+        },
+        showNavigator: false,
+        showNavigationControl: false,
+        showSequenceControl: false,
+        showFullPageControl: false,
+        showHomeControl: false,
+        showZoomControl: false,
+        showRotationControl: false,
+        showFlipControl: false,
+        defaultZoomLevel: 0,
+        gestureSettingsMouse: {
+          clickToZoom: true,
+          dblClickToZoom: true,
+          pinchToZoom: true,
+          flickEnabled: true,
+          flickMinSpeed: 120,
+          flickMomentum: 0.25
+        },
+        gestureSettingsTouch: {
+          clickToZoom: true,
+          dblClickToZoom: true,
+          pinchToZoom: true,
+          flickEnabled: true,
+          flickMinSpeed: 120,
+          flickMomentum: 0.25
+        },
+        // Mobile optimierte Einstellungen
+        constrainDuringPan: true,
+        maxZoomPixelRatio: 2,
+        minZoomImageRatio: 0.5,
+        maxZoomImageRatio: 3
+      });
+
+      // Hotspots laden (gleiche Funktion wie in bild.html)
+      function loadHotspots(xmlFile) {
+        fetch(xmlFile)
+        .then(response => response.text())
+        .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+        .then(xml => {
+            let hotspots = xml.getElementsByTagName("HOTSPOT");
+            for (let i = 0; i < hotspots.length; i++) {
+              let x = parseFloat(hotspots[i].getAttribute("X"));
+              let y = parseFloat(hotspots[i].getAttribute("Y"));
+              let id = hotspots[i].getAttribute("ID");
+              let icon = hotspots[i].getAttribute("MEDIA");
+              let popupImage = hotspots[i].getAttribute("POPUP");
+                
+              addOverlay(x, y, id, "./Assets/button-wim.png", popupImage);
+            }
+        })
+        .catch(error => console.error("Error loading XML:", error));
+      }
+
+      // Overlay hinzufügen (gleiche Funktion wie in bild.html)
+      function addOverlay(x, y, id, icon, popupImage) {        
+        const normalizedX = (x * (5787 / 14344)) / 5787;
+        const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
+
+        var overlay = document.createElement("div");
+        overlay.className = "hotspot-overlay";
+        overlay.style.backgroundImage = `url(${icon})`;
+
+        // Mobile: Touch-Events statt Hover
+        overlay.ontouchstart = function (e) {
+          e.preventDefault();
+          togglePopup(id, normalizedX, normalizedY, popupImage);
+        };
+        
+        overlay.onclick = function (e) {
+          e.preventDefault();
+          togglePopup(id, normalizedX, normalizedY, popupImage);
+        };
+      }
+
+      // Popup anzeigen/verstecken (gleiche Funktion wie in bild.html)
+      function togglePopup(id, x, y, popupImage) {
+        let existingPopup = document.getElementById(`popup-${id}`);
+
+        if(existingPopup) {
+          existingPopup.remove();
+        } else {
+          let popup = document.createElement("div");
+          popup.className = "popup";
+          popup.id = `popup-${id}`;
+          popup.innerHTML = `<img src ="${popupImage}" alt="Popup ${id}">`;
+
+          viewer.addOverlay({
+            element: popup,
+            location: new OpenSeadragon.Point(x, y),
+            placement: OpenSeadragon.OverlayPlacement.BOTTOM
+          });
+          
+          // Popup nach 5 Sekunden automatisch schließen
+          setTimeout(() => {
+            if (document.getElementById(`popup-${id}`)) {
+              document.getElementById(`popup-${id}`).remove();
+            }
+          }, 5000);
+        }
+      }
+      
+      // Hotspots laden
+      loadHotspots("./src/hotspots.xml");
+      
+      // Mobile-spezifische Optimierungen
+      viewer.addHandler('open', function() {
+        // Automatisch auf die richtige Zoom-Stufe setzen für mobile Geräte
+        setTimeout(() => {
+          viewer.viewport.fitVertically();
+        }, 100);
+      });
+      
+      // Verhindere Zoom beim Doppel-Tap auf Hotspots
+      document.addEventListener('touchstart', function(e) {
+        if (e.target.classList.contains('hotspot-overlay')) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+    </script>
+  </body>
+</html>

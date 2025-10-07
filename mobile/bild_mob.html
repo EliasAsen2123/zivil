@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Wimmelbild - Plan:g</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#769b60" />
+
+    <script src="../openseadragon/openseadragon.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        height: 100vh;
+        overflow: hidden;
+      }
+      body {
+        height: 100vh;
+        position: relative;
+      }
+      #myContainer {
+        width: 100%;
+        height: 100%;
+        background-color: #769b60;
+      }
+      .closeContainer {
+        color: white;
+        font-size: 25px;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 600;
+        width: 50px;
+        height: 50px;
+        background-image: url("img/cancel.png");
+        background-size: cover;
+        cursor: pointer;
+      }
+      .hotspot-overlay {
+        width: 10px;
+        height: 10px;
+        background-size: cover;  /* Ensure the image fits the div */
+        background-repeat: no-repeat;
+        cursor: pointer;        /* Makes the hotspot clickable */
+      }
+    </style>
+    <!-- Matomo -->
+    <script type="text/javascript">
+      var _paq = window._paq || [];
+      /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+      _paq.push(["trackPageView"]);
+      _paq.push(["enableLinkTracking"]);
+      (function() {
+        var u = "https://www.plan-g.at/sub/piwik/";
+        _paq.push(["setTrackerUrl", u + "piwik.php"]);
+        _paq.push(["setSiteId", "4"]);
+        var d = document,
+          g = d.createElement("script"),
+          s = d.getElementsByTagName("script")[0];
+        g.type = "text/javascript";
+        g.async = true;
+        g.defer = true;
+        g.src = u + "piwik.js";
+        s.parentNode.insertBefore(g, s);
+      })();
+    </script>
+    <!-- End Matomo Code -->
+  </head>
+  <body>
+    <div id="myContainer"></div>
+    <script>
+      var viewer = OpenSeadragon({
+        id: "myContainer",
+        prefixUrl: "./Assets/osd_img/",
+        tileSources: {
+          type: "image",
+          width: 5787,
+          height: 7722,
+          url: "./img/wimmelbildfinal.jpg",
+          minLevel: 0,
+          maxLevel: 5,
+          buildPyramid: true,
+
+        },
+        showNavigator: true,
+        navigatorPosition: "TOP_RIGHT",
+        defaultZoomLevel: 0,
+        showNavigationControl: true,
+      });
+
+      function loadHotspots(xmlFile) {
+        fetch(xmlFile)
+        .then(response => response.text())
+        .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+        .then(xml => {
+            let hotspots = xml.getElementsByTagName("HOTSPOT");
+            for (let i = 0; i < hotspots.length; i++) {
+              let x = parseFloat(hotspots[i].getAttribute("X"));
+              let y = parseFloat(hotspots[i].getAttribute("Y"));
+              let id = hotspots[i].getAttribute("ID");
+              let icon = hotspots[i].getAttribute("MEDIA");
+              let popupImage = hotspots[i].getAttribute("POPUP");
+                
+
+              addOverlay(x, y, id, "./Assets/button-wim.png", popupImage);
+            }
+            
+        })
+        .catch(error => console.error("Error loading XML:", error));
+      }
+
+      function addOverlay(x, y, id, icon, popupImage) {        
+        const normalizedX = (x * (5787 / 14344)) / 5787;
+        const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
+
+        var overlay = document.createElement("div");
+        overlay.className = "hotspot-overlay";
+        overlay.style.backgroundImage = `url(${icon})`;
+
+        overlay.onclick = function () {
+          togglePopup(id, normalizedX, normalizedY, popupImage);
+        };
+        overlay.onclick = function () {
+          togglePopup(id, normalizedX, normalizedY, popupImage);
+        };
+
+        viewer.addOverlay({
+          element: overlay,
+          location: new OpenSeadragon.Point(normalizedX, normalizedY),
+          placement: OpenSeadragon.OverlayPlacement.CENTER
+        });
+      }
+
+      function togglePopup(id, x, y, popupImage) {
+        let existingPopup = document.getElementById(`popup-${id}`);
+
+        if(existingPopup) {
+          existingPopup.remove();
+        } else {
+          let popup = document.createElement("div");
+          popup.className = "popup";
+          popup.id = `popup-${id}`;
+          popup.innerHTML = `<img src ="${popupImage}" width="400">`;
+
+          viewer.addOverlay({
+            element: popup,
+            location: new OpenSeadragon.Point(x, y),
+            placement:OpenSeadragon.OverlayPlacement.BOTTOM
+          });
+
+          setTimeout(() => popup.remove(), 5000)
+        }
+      }
+      loadHotspots("./src/hotspots.xml");
+    </script>
+    <a href="index.html"><div class="closeContainer"></div></a>
+  </body>
+</html>

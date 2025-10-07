@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <title>Wimmelbild - Plan:g</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <style>
+      @font-face {
+        font-family: "circular";
+        src: url("src/lineto-circular-book.woff") format("woff");
+        font-weight: normal;
+      }
+      * {
+        margin: 0px;
+        padding: 0px;
+      }
+      html {
+        height: 100%;
+      }
+      body {
+        position: relative;
+        overflow: hidden;
+        background-color: #f3f3f3;
+        height: 100%;
+      }
+      .logo-container {
+        position: absolute;
+        z-index: 1000;
+        top: 25px;
+        left: 25px;
+        opacity: 0;
+        display: none;
+        -webkit-transition: opacity 900ms, diplay 900ms;
+        transition: opacity 900ms, diplay 900ms;
+      }
+      .logo {
+        width: 250px;
+        border: none;
+      }
+      .signet {
+        width: 100px;
+        border: none;
+      }
+      #myContainer {
+        width: 40%;
+        max-width: 600px;
+        position: absolute;
+        top: 60px;
+        right: 5%;
+        z-index: 1;
+        border: none;
+      }
+      #myContainer:hover ~ .logo-container {
+        opacity: 1;
+        display: block;
+      }
+      .welcome {
+        position: absolute;
+        z-index: 250;
+        top: 51px;
+        left: 22px;
+        width: 70%;
+      }
+      .impressum {
+        position: absolute;
+        bottom: 20px;
+        left: 22px;
+        font-family: "circular", Helvetica, sans-serif;
+        z-index: 260;
+        font-size: 18px;
+        line-height: 1.5;
+      }
+      .welcomeMessage {
+        font-family: "circular", Helvetica, sans-serif;
+        margin-top: 20px;
+      }
+      .link {
+        text-decoration: none;
+      }
+      .text-link {
+        color: #789f40;
+      }
+      .flexcta {
+        width: 60%;
+        padding-top: 50px;
+      }
+      .cta {
+        font-family: "circular", Helvetica, sans-serif;
+        max-width: 230px;
+        background-color: #789f40;
+        padding: 15px;
+        color: white;
+        text-decoration: none;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        -webkit-box-pack: center;
+        -ms-flex-pack: center;
+        justify-content: center;
+        text-transform: uppercase;
+        font-weight: bold;
+        font-size: 17px;
+        -webkit-transition: background-color 600ms;
+        transition: background-color 600ms;
+        margin: 20px;
+        margin-left: 0px;
+        margin-top: 0px;
+        cursor: pointer;
+        text-align: center;
+      }
+      .cta:hover {
+        background-color: #870184;
+      }
+      .language {
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        width: 80px;
+        height: 50px;
+        -webkit-box-pack: justify;
+        -ms-flex-pack: justify;
+        justify-content: space-between;
+        font-size: 14px;
+      }
+      .flag-container {
+        text-align: center;
+        margin: 10px 0px;
+      }
+      .flag {
+        width: 30px;
+        height: 22px;
+        background-size: cover;
+        margin: 10px auto;
+      }
+      .flag.en {
+        background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg");
+      }
+      .flag.de {
+        background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg");
+      }
+    </style>
+  <!-- Matomo -->
+<script type="text/javascript">
+  var _paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="https://www.plan-g.at/sub/piwik/";
+    _paq.push(['setTrackerUrl', u+'piwik.php']);
+    _paq.push(['setSiteId', '4']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+
+  </head>
+  <body>
+    <a href="bild_mob.html"
+      ><img src="img/wimmelbild_prev_en.jpg" id="myContainer"
+    /></a>
+    <div class="logo-container">
+      <a href="https://www.plan-g.at/details-of-our-work" target="blank">
+        <img src="img/signet_bunt.png" class="signet"
+      /></a>
+    </div>
+    <div class="welcome">
+      <a href="https://www.plan-g.at/details-of-our-work" target="_blank">
+        <img src="img/logo.png" class="logo"
+      /></a>
+      <h1 class="welcomeMessage">
+        The world is quite small,<br />
+        health is quite complex:<br />
+        Enjoy your discoveries.
+      </h1>
+      <div class="flexcta">
+        <a
+          href="https://www.plan-g.at/the-personal-is-political"
+          target="_blank"
+          class="link"
+        >
+          <div class="cta">
+            This picture
+          </div>
+        </a>
+        <a
+          href="https://www.plan-g.at/details-of-our-work"
+          target="_blank"
+          class="link"
+        >
+          <div class="cta">
+            Our work
+          </div>
+        </a>
+      </div>
+    </div>
+    </div>
+    <div class="impressum">
+      <div class="language">
+        <div class="flag-container">
+          <a href="https://weltgesundheit.org" class="text-link"
+            ><div class="flag de"></div
+          ></a>
+        </div>
+        <div class="flag-container">
+          <a href="https://en.weltgesundheit.org" class="text-link">
+            <div class="flag en"></div>
+          </a>
+        </div>
+      </div>
+      <p>Illustration: Alice Ruzzettu</p>
+      <a href="http://plan-g.at/impressum" class="text-link" target="_blank"
+        >Imprint</a
+      >
+    </div>
+  </body>
+</html>
