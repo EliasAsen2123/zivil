@@ -28,7 +28,8 @@
     body{
       font-family:"circular",Arial,sans-serif;
       background:#f3f3f3;
-      overflow:hidden; /* Bühne skaliert, keine Scrollbars */
+      color:#000;
+      /* Safe-Area für iOS-Notch etc. */
       padding:
         max(env(safe-area-inset-top),0px)
         max(env(safe-area-inset-right),0px)
@@ -36,71 +37,62 @@
         max(env(safe-area-inset-left),0px);
     }
 
-    /* === feste Desktop-Bühne, die wir skaliert & zentriert anzeigen === */
-    .stage-wrap{
-      position:relative;
-      width:100%;
-      height:100%;
-      overflow:hidden;
-      background:#f3f3f3;
+    /* ===== Mobile Einspalten-Layout ===== */
+    .page{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-start;
+      gap:20px;
     }
 
-    /* „Bühne“ in Desktop-Maßen (wird via transform skaliert/verschoben) */
-    .stage{
-      position:absolute; /* wichtig für translate() */
-      width: 1340px;     /* BASE_LEFT_WIDTH + CIRCLE_DIAMETER */
-      height: 820px;     /* Basis-Höhe */
-      left: 0; top: 0;
-      transform-origin: top left;
-      will-change: transform;
+    /* HEADER (Logo + Claim + Buttons) */
+    .header{
+      padding:24px 20px 0 20px;
+      max-width:720px;   /* schöne Linienlänge */
     }
+    .logo{ width:200px; height:auto; margin-bottom:14px; }
+    .claim{ font-size:22px; line-height:1.28; }
 
-    /* Linke Spalte */
-    .left{
-      position:absolute;
-      top:51px; left:22px;
-      width: 520px;      /* BASE_LEFT_WIDTH */
-      z-index:10;
-    }
-    .logo{ width:250px; padding-bottom:24px; }
-    .claim{ font-size:28px; line-height:1.28; margin-top:8px; }
-
-    .ctas{ display:flex; flex-wrap:wrap; gap:12px; margin-top:36px; }
+    .ctas{ display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
     .cta{
-      max-width:230px; background:#789f40; color:#fff; text-decoration:none;
-      text-transform:uppercase; font-weight:bold; font-size:16px;
-      padding:14px; display:flex; align-items:center; justify-content:center;
-      transition:background-color .25s;
+      background:#789f40; color:#fff; text-decoration:none;
+      text-transform:uppercase; font-weight:bold; font-size:14px;
+      padding:12px 14px; border-radius:2px;
+      display:flex; align-items:center; justify-content:center;
     }
     .cta:active,.cta:hover{ background:#870184; }
 
-    .impressum{
-      position:absolute; left:22px; bottom:18px; font-size:14px; line-height:1.4;
+    /* KREIS-VIEWER mittig darunter */
+    .circle-wrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      width:100%;
+      padding:8px 0 0 0;
+    }
+    /* Der Kreis ist responsiv, bleibt immer 1:1 und zentriert */
+    #myContainer{
+      width: min(92vw, 720px);
+      aspect-ratio: 1 / 1;
+      background:#769b60;
+      clip-path: circle(50% at 50% 50%);
+      -webkit-clip-path: circle(50% at 50% 50%);
+      overflow:hidden;
+    }
+
+    /* FOOTER unten links */
+    .footer{
+      margin-top:auto;                /* drückt Footer nach unten */
+      padding: 6px 20px 18px 20px;
+      max-width:720px;
     }
     .language{ display:flex; gap:14px; margin-bottom:6px; }
     .flag{ width:28px; height:20px; background-size:cover; }
     .flag.de{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
     .flag.en{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
-    .text-link{ color:#789f40; text-decoration:none; }
-
-    /* Rechte Spalte: runder Viewer */
-    .right{
-      position:absolute;
-      top: 0;
-      left: 520px;      /* exakt neben der linken Spalte */
-      width: 820px;     /* CIRCLE_DIAMETER */
-      height: 820px;
-      display:flex; align-items:center; justify-content:center;
-      pointer-events:none; /* Container selbst nicht klickbar */
-    }
-    #myContainer{
-      width: 820px; height: 820px;
-      background:#769b60;
-      clip-path: circle(50% at 50% 50%);
-      -webkit-clip-path: circle(50% at 50% 50%);
-      overflow:hidden;
-      pointer-events:auto; /* nur der Viewer interaktiv */
-    }
+    .text-link{ color:#789f40; text-decoration:none; font-size:12px; }
+    .credit{ font-size:12px; color:#000; margin:2px 0 4px 0; }
 
     /* Hotspots & Popup */
     .hotspot-overlay{
@@ -109,82 +101,57 @@
       box-shadow:0 2px 4px rgba(0,0,0,.3);
     }
     .popup{
-      max-width:620px; max-height:60vh; overflow:hidden;
+      max-width:90vw; max-height:60vh; overflow:hidden;
       border-radius:8px; background:#fff;
       box-shadow:0 4px 12px rgba(0,0,0,.3);
     }
     .popup img{ display:block; width:100%; height:auto; }
+
+    /* etwas großzügiger auf sehr großen Phones/Tablets */
+    @media (min-width: 820px){
+      .logo{ width:240px }
+      .claim{ font-size:24px }
+      .cta{ font-size:15px; padding:13px 16px }
+    }
   </style>
 </head>
 <body>
-  <div class="stage-wrap">
-    <div id="stage" class="stage" aria-hidden="false">
-      <div class="left">
-        <a href="https://plan-g.at/ueber-uns" target="_blank"><img src="img/logo.png" class="logo" alt="plan:g"></a>
-        <h1 class="claim">
-          Die Welt ist ziemlich klein,<br>
-          Gesundheit ziemlich komplex:<br>
-          Viel Spaß beim Entdecken.
-        </h1>
-        <div class="ctas">
-          <a class="cta" href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank">Dieses Poster</a>
-          <a class="cta" href="https://plan-g.at/projekte/alle-projekte" target="_blank">Unsere Arbeit</a>
-          <a class="cta" href="https://plan-g.at/news-events/informiert-bleiben" target="_blank">Informiert bleiben</a>
-        </div>
-      </div>
+  <div class="page">
+    <!-- oben links -->
+    <header class="header">
+      <a href="https://plan-g.at/ueber-uns" target="_blank" aria-label="Über uns">
+        <img src="img/logo.png" class="logo" alt="plan:g">
+      </a>
+      <h1 class="claim">
+        Die Welt ist ziemlich klein,<br>
+        Gesundheit ziemlich komplex:<br>
+        Viel Spaß beim Entdecken.
+      </h1>
+      <nav class="ctas" aria-label="Hauptaktionen">
+        <a class="cta" href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank">Dieses Poster</a>
+        <a class="cta" href="https://plan-g.at/projekte/alle-projekte" target="_blank">Unsere Arbeit</a>
+        <a class="cta" href="https://plan-g.at/news-events/informiert-bleiben" target="_blank">Informiert bleiben</a>
+      </nav>
+    </header>
 
-      <div class="right">
-        <div id="myContainer"></div>
-      </div>
+    <!-- dann der Kreis -->
+    <main class="circle-wrap">
+      <div id="myContainer"></div>
+    </main>
 
-      <div class="impressum">
-        <div class="language">
-          <a href="https://weltgesundheit.org" class="text-link" title="Deutsch"><div class="flag de"></div></a>
-          <a href="https://weltgesundheit.org/en/" class="text-link" title="English"><div class="flag en"></div></a>
-        </div>
-        <p>Illustration: Alice Ruzzettu</p>
-        <a href="http://plan-g.at/impressum" target="_blank" class="text-link">Impressum</a>
+    <!-- unten links -->
+    <footer class="footer">
+      <div class="language" aria-label="Sprachen">
+        <a href="https://weltgesundheit.org" class="text-link" title="Deutsch"><div class="flag de"></div></a>
+        <a href="https://weltgesundheit.org/en/" class="text-link" title="English"><div class="flag en"></div></a>
       </div>
-    </div>
+      <p class="credit">Illustration: Alice Ruzzettu</p>
+      <a href="http://plan-g.at/impressum" target="_blank" class="text-link">Impressum</a>
+    </footer>
   </div>
 
   <script>
-    /* ===== 1) Bühnenskalierung & Zentrierung ===== */
-    const BASE = {
-      LEFT_WIDTH: 520,           // px
-      CIRCLE: 820,               // Durchmesser
-      STAGE_W: 520 + 820,        // 1340
-      STAGE_H: 820               // 820
-    };
-
-    const stage = document.getElementById('stage');
-
-    // 'contain' = komplett sichtbar; 'cover' = füllt Screen (kann außerhalb liegen)
-    const FILL_MODE = 'contain';
-
-    function fitStageToViewport(){
-      const cs = getComputedStyle(document.body);
-      const vw = window.innerWidth  - (parseInt(cs.paddingLeft) + parseInt(cs.paddingRight));
-      const vh = window.innerHeight - (parseInt(cs.paddingTop)  + parseInt(cs.paddingBottom));
-
-      const sx = vw / BASE.STAGE_W;
-      const sy = vh / BASE.STAGE_H;
-      const scale = (FILL_MODE === 'cover') ? Math.max(sx, sy) : Math.min(sx, sy, 1);
-
-      const usedW = BASE.STAGE_W * scale;
-      const usedH = BASE.STAGE_H * scale;
-      const offsetX = Math.max(0, (vw - usedW) / 2);
-      const offsetY = Math.max(0, (vh - usedH) / 2);
-
-      stage.style.transformOrigin = 'top left';
-      stage.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-    }
-
-    window.addEventListener('resize', () => { fitStageToViewport(); viewer?.forceRedraw(); });
-    window.addEventListener('orientationchange', () => setTimeout(() => { fitStageToViewport(); viewer?.forceRedraw(); }, 100));
-    fitStageToViewport();
-
-    /* ===== 2) OpenSeadragon ===== */
+    /* ===== OpenSeadragon – passt sich automatisch der Kreisgröße an ===== */
     const viewer = OpenSeadragon({
       id: "myContainer",
       prefixUrl: "openseadragon/images/",
@@ -208,13 +175,17 @@
       maxZoomImageRatio: 3
     });
 
-    // Beim Öffnen: Bild so setzen, dass es den Kreis gut füllt
+    // Start: Kreis gut füllen
     viewer.addHandler('open', () => {
       viewer.viewport.fitVertically();
       setTimeout(() => viewer.viewport.zoomBy(1.06), 60);
     });
 
-    /* ===== 3) Hotspots ===== */
+    // Bei Größenänderung: neu zeichnen
+    const ro = new ResizeObserver(() => viewer && viewer.forceRedraw());
+    ro.observe(document.getElementById('myContainer'));
+
+    /* ===== Hotspots laden ===== */
     function loadHotspots(xmlFile){
       fetch(xmlFile)
         .then(r => r.text())
@@ -244,7 +215,6 @@
       el.addEventListener('touchstart', handler, { passive:false });
       el.addEventListener('click', handler);
 
-      // tatsächlich zum Viewer hinzufügen
       viewer.addOverlay({
         element: el,
         location: new OpenSeadragon.Point(normalizedX, normalizedY),
