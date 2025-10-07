@@ -5,14 +5,15 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link rel="icon" type="image/png" href="favicon.png" />
 
+    <!-- OpenSeadragon -->
     <script src="./openseadragon/openseadragon.min.js"></script>
+    <!-- Browser-Detect (optional) -->
     <script src="detect-browser.js"></script>
     <script>
       const info = (typeof getBrowser === "function" && getBrowser()) || {};
-      if (["Microsoft Edge","Safari","Internet Explorer"].includes(info.browser)) {
-        // Falls du die IE/Edge/Safari-Seite brauchst, lass das drin
-        // window.location = "index_ie.html";
-      }
+      // if (["Microsoft Edge","Safari","Internet Explorer"].includes(info.browser)) {
+      //   window.location = "index_ie.html";
+      // }
       const IS_TOUCH = matchMedia("(pointer:coarse)").matches;
     </script>
 
@@ -29,22 +30,18 @@
       .logo{width:250px;padding-bottom:30px}
       .signet{width:100px}
 
-      /* Viewer im Startzustand: Kreis links eingerückt */
+      /* Viewer Startzustand (Kreis) */
       #myContainer{
-        position:absolute; inset:auto 0 0 auto; /* bleibt kompatibel */
-        width:100%; height:100vh; left:10vw;
-        background:#769b60;
-        clip-path:circle(20vw at center);
-        -webkit-clip-path:circle(20vw at center);
+        position:absolute; width:100%; height:100vh; left:10vw;
+        background:#769b60; z-index:500; overflow:hidden;
+        clip-path:circle(20vw at center); -webkit-clip-path:circle(20vw at center);
         transition:clip-path .5s,left .5s;
-        z-index:500; overflow:hidden;
       }
 
       /* Vollbildzustand per Klasse */
       #myContainer.viewer-open{
         position:fixed; inset:0; left:0 !important; width:100vw;height:100vh;
-        clip-path:circle(100vw at 50% 50%);
-        -webkit-clip-path:circle(100vw at 50% 50%);
+        clip-path:circle(100vw at 50% 50%); -webkit-clip-path:circle(100vw at 50% 50%);
         z-index:1200;
       }
 
@@ -66,7 +63,17 @@
       .flag.en{background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg")}
       .flag.de{background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg")}
 
-      .hotspot-overlay{width:14px;height:14px;border-radius:50%;background-size:cover;background-repeat:no-repeat;box-shadow:0 2px 4px rgba(0,0,0,.3)}
+      /* 🔴 Hotspots – jetzt größer */
+      .hotspot-overlay{
+        width:26px;         /* vorher 14px */
+        height:26px;
+        border-radius:50%;
+        background-size:cover;background-repeat:no-repeat;
+        box-shadow:0 2px 4px rgba(0,0,0,.3);
+        /* transform wird dynamisch gesetzt, wenn KEEP_CONSTANT_SIZE = true */
+        will-change: transform;
+      }
+
       .popup img{display:block;max-width:90vw;height:auto}
     </style>
 
@@ -78,13 +85,14 @@
     </script>
   </head>
   <body>
+    <!-- Scrim & Close für Vollbild -->
     <div id="viewerScrim" class="viewer-scrim" aria-hidden="true"></div>
     <button id="viewerClose" class="viewer-close" aria-label="Schließen">✕</button>
 
     <div id="myContainer"></div>
 
     <script>
-      // 🚀 OpenSeadragon – mobile Performance-Tuning
+      /* ===== OpenSeadragon ===== */
       const viewer = OpenSeadragon({
         id: "myContainer",
         prefixUrl: "openseadragon/images/",
@@ -97,15 +105,13 @@
           maxLevel: 5,
           buildPyramid: true
         },
-        // UI schlank halten – besonders auf Touch
+        // UI reduziert für Touch
         showNavigator: !IS_TOUCH,
         navigatorPosition: "TOP_RIGHT",
         showNavigationControl: !IS_TOUCH,
         defaultZoomLevel: 0,
-        // Gesten
         gestureSettingsMouse: { clickToZoom:true, dblClickToZoom:true, pinchToZoom:true, flickEnabled:true },
         gestureSettingsTouch: { clickToZoom:true, dblClickToZoom:true, pinchToZoom:true, flickEnabled:true },
-        // Rendering
         constrainDuringPan: true,
         maxZoomPixelRatio: 2,
         minZoomImageRatio: 0.5,
@@ -113,122 +119,9 @@
         visibilityRatio: 0.9
       });
 
+      let HOME_Z = 1;
+      const KEEP_CONSTANT_SIZE = true; // ⇐ auf false setzen, wenn Punkte mitzoomen sollen
+
       viewer.addHandler('open', () => {
         viewer.viewport.fitVertically();
-        setTimeout(() => viewer.viewport.zoomBy(1.04), 50);
-      });
-
-      // 👉 Nur bei kurzem Tipp öffnen (kollidiert nicht mit Pan/Zoom)
-      const container = document.getElementById('myContainer');
-      const scrim = document.getElementById('viewerScrim');
-      const closeBtn = document.getElementById('viewerClose');
-
-      function openViewer(){
-        container.classList.add('viewer-open'); scrim.classList.add('show'); closeBtn.classList.add('show');
-        document.body.style.overflow = 'hidden';
-        try{ viewer.viewport.applyConstraints(); viewer.forceRedraw(); }catch(e){}
-      }
-      function closeViewer(){
-        container.classList.remove('viewer-open'); scrim.classList.remove('show'); closeBtn.classList.remove('show');
-        document.body.style.overflow = '';
-      }
-
-      // Event nur über OSD, damit Gesten ungestört bleiben
-      viewer.addHandler('canvas-click', function(e){
-        if(e.quick && !container.classList.contains('viewer-open')) openViewer();
-      });
-      scrim.addEventListener('click', closeViewer);
-      closeBtn.addEventListener('click', closeViewer);
-      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeViewer(); });
-
-      // Hotspots
-      function loadHotspots(xmlFile) {
-        fetch(xmlFile)
-          .then(r => r.text())
-          .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
-          .then(xml => {
-            const hotspots = xml.getElementsByTagName("HOTSPOT");
-            for (let i = 0; i < hotspots.length; i++) {
-              const x = parseFloat(hotspots[i].getAttribute("X"));
-              const y = parseFloat(hotspots[i].getAttribute("Y"));
-              const id = hotspots[i].getAttribute("ID");
-              const popupImage = hotspots[i].getAttribute("POPUP");
-              addOverlay(x, y, id, "./Assets/button-wim.png", popupImage);
-            }
-          })
-          .catch(err => console.error("Error loading XML:", err));
-      }
-
-      function addOverlay(x, y, id, icon, popupImage){
-        const normalizedX = (x * (5787 / 14344)) / 5787;
-        const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
-
-        const el = document.createElement("div");
-        el.className = "hotspot-overlay";
-        el.style.backgroundImage = `url(${icon})`;
-
-        // ✅ Mobile + Desktop
-        const handler = (ev) => { ev.preventDefault(); togglePopup(id, normalizedX, normalizedY, popupImage); };
-        el.addEventListener('click', handler);
-        el.addEventListener('touchstart', handler, { passive:false });
-
-        viewer.addOverlay({
-          element: el,
-          location: new OpenSeadragon.Point(normalizedX, normalizedY),
-          placement: OpenSeadragon.OverlayPlacement.CENTER
-        });
-      }
-
-      function togglePopup(id, x, y, popupImage){
-        const nodeId = `popup-${id}`;
-        const existing = document.getElementById(nodeId);
-        if(existing){ existing.remove(); return; }
-
-        const popup = document.createElement("div");
-        popup.className = "popup";
-        popup.id = nodeId;
-        popup.innerHTML = `<img src="${popupImage}" alt="Popup ${id}">`;
-
-        viewer.addOverlay({
-          element: popup,
-          location: new OpenSeadragon.Point(x, y),
-          placement: OpenSeadragon.OverlayPlacement.BOTTOM
-        });
-
-        // Auto-close
-        setTimeout(()=>document.getElementById(nodeId)?.remove(), 5000);
-      }
-
-      loadHotspots("./src/hotspots.xml");
-    </script>
-
-    <div class="logo-container">
-      <a href="https://plan-g.at/ueber-uns" target="blank">
-        <img src="img/signet_bunt.png" class="signet" alt="plan:g Signet"/>
-      </a>
-    </div>
-
-    <div class="welcome">
-      <a href="https://plan-g.at/ueber-uns" target="_blank">
-        <img src="img/logo.png" class="logo" alt="plan:g"/>
-      </a>
-      <h1 class="welcomeMessage">
-        Die Welt ist ziemlich klein,<br/>Gesundheit ziemlich komplex:<br/>Viel Spaß beim Entdecken.
-      </h1>
-      <div class="flexcta">
-        <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" class="text-link"><div class="cta">Dieses Poster</div></a>
-        <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" class="text-link"><div class="cta">Unsere Arbeit</div></a>
-        <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" class="text-link"><div class="cta">Informiert bleiben</div></a>
-      </div>
-    </div>
-
-    <div class="impressum">
-      <div class="language">
-        <div class="flag-container"><a href="https://weltgesundheit.org" class="text-link"><div class="flag de"></div></a></div>
-        <div class="flag-container"><a href="https://weltgesundheit.org/en/" class="text-link"><div class="flag en"></div></a></div>
-      </div>
-      <p>Illustration: Alice Ruzzettu</p>
-      <a href="http://plan-g.at/impressum" class="text-link" target="_blank">Impressum</a>
-    </div>
-  </body>
-</html>
+        HOME_Z = viewer.viewport.getZoom(tru_
