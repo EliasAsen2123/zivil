@@ -1,246 +1,361 @@
 <!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8" />
-  <title>Wimmelbild - Plan:g</title>
-  <link rel="icon" type="image/png" href="favicon.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#769b60" />
+<html xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <title>Wimmelbild - Plan:g</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <!--COPY ME INTO HEAD-->
+    <script src="./openseadragon/openseadragon.min.js"></script>
+    <!--COPY ME INTO HEAD-->
+    <script src="detect-browser.js"></script>
+    <script type="text/javascript">
+      var info = getBrowser();
+      console.log(info);
+      if (
+        info.browser === "Microsoft Edge" ||
+        info.browser === "Safari" ||
+        info.browser === "Internet Explorer"
+      ) {
+        window.location = "index_ie.html";
+      }
+    </script>
+    <style>
+      @font-face {
+        font-family: "circular";
+        src: url("src/lineto-circular-book.woff") format("woff");
+        font-weight: normal;
+      }
+      * { margin:0; padding:0; box-sizing:border-box; }
+      html { height:100%; }
+      body {
+        position: relative;
+        overflow: hidden;
+        background-color: #f3f3f3;
+        height: 100%;
+        font-family: "circular", Arial, sans-serif;
+      }
 
-  <script src="./openseadragon/openseadragon.min.js"></script>
-  <script src="detect-browser.js"></script>
-  <script>
-    const info = (typeof getBrowser === "function" && getBrowser()) || {};
-    if (["Microsoft Edge","Safari","Internet Explorer"].includes(info.browser)) {
-      window.location = "index_ie.html";
-    }
-  </script>
+      .logo-container {
+        position: absolute;
+        z-index: 1000;
+        top: 25px;
+        left: 25px;
+        opacity: 0;
+        display: none;
+        -webkit-transition: opacity 900ms, display 900ms;
+        transition: opacity 900ms, display 900ms;
+      }
+      .logo { width: 250px; padding-bottom: 30px; }
+      .signet { width: 100px; }
 
-  <style>
-    @font-face{
-      font-family:"circular";
-      src:url("src/lineto-circular-book.woff") format("woff");
-      font-weight:normal;
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
+      /* --- Kreis/Viewer (Desktop: Hover; Mobile: per Tap öffnen) --- */
+      #myContainer {
+        width: 100%;
+        height: 100vh;
+        background-color: #769b60;
+        -webkit-clip-path: circle(20vw at center);
+        clip-path: circle(20vw at center);
+        -webkit-transition: left 900ms, -webkit-clip-path 900ms;
+        transition: left 900ms, -webkit-clip-path 900ms, clip-path 900ms;
+        position: absolute;
+        left: 10vw;
+        z-index: 500;
+        overflow:hidden;
+      }
+      /* Desktop Hover-Öffnen */
+      @media (hover:hover) and (pointer:fine) {
+        #myContainer:hover {
+          -webkit-clip-path: circle(100vw at center);
+          clip-path: circle(100vw at center);
+          left: 0vw;
+        }
+        #myContainer:hover ~ .logo-container {
+          opacity: 1;
+          display: block;
+        }
+      }
 
-    html,body{height:100%}
-    body{
-      font-family:"circular",Arial,sans-serif;
-      background:#f3f3f3;
-      color:#000;
-      /* Safe-Area für iOS-Notch etc. */
-      padding:
-        max(env(safe-area-inset-top),0px)
-        max(env(safe-area-inset-right),0px)
-        max(env(safe-area-inset-bottom),0px)
-        max(env(safe-area-inset-left),0px);
-    }
+      /* Vollbildzustand per Klasse (für Mobile & optional Desktop-Klick) */
+      #myContainer.viewer-open {
+        position: fixed;
+        inset: 0;
+        left: 0 !important;
+        width: 100vw;
+        height: 100vh;
+        -webkit-clip-path: circle(100vw at 50% 50%);
+        clip-path: circle(100vw at 50% 50%);
+        z-index: 1200;
+      }
 
-    /* ===== Mobile Einspalten-Layout ===== */
-    .page{
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-      justify-content:flex-start;
-      gap:20px;
-    }
+      /* leichte Abdunklung + Close-Button im Vollbild */
+      .viewer-scrim {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.35);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .3s;
+        z-index: 1190;
+      }
+      .viewer-scrim.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .viewer-close {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 1300;
+        width: 40px;
+        height: 40px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(0,0,0,0.55);
+        color:#fff;
+        font-size:22px;
+        line-height:40px;
+        text-align:center;
+        cursor:pointer;
+        opacity:0;
+        pointer-events:none;
+        transition: opacity .2s;
+      }
+      .viewer-close.show {
+        opacity:1;
+        pointer-events:auto;
+      }
 
-    /* HEADER (Logo + Claim + Buttons) */
-    .header{
-      padding:24px 20px 0 20px;
-      max-width:720px;   /* schöne Linienlänge */
-    }
-    .logo{ width:200px; height:auto; margin-bottom:14px; }
-    .claim{ font-size:22px; line-height:1.28; }
+      .welcome {
+        position: absolute;
+        z-index: 250;
+        top: 51px;
+        left: 22px;
+        width: 70%;
+      }
+      .impressum {
+        position: absolute;
+        bottom: 20px;
+        left: 22px;
+        z-index: 260;
+        font-size: 18px;
+        line-height: 1.5;
+      }
+      .welcomeMessage { margin-top: 20px; }
+      .link { text-decoration: none; }
+      .text-link { color: #789f40; }
+      .flexcta { width: 60%; padding-top: 60px; }
+      .cta {
+        max-width: 230px;
+        background-color: #789f40;
+        padding: 15px;
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-transform: uppercase;
+        font-weight: bold;
+        font-size: 18px;
+        transition: background-color 600ms;
+        margin: 20px 0 0 0;
+      }
+      .cta:hover { background-color: #870184; }
 
-    .ctas{ display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
-    .cta{
-      background:#789f40; color:#fff; text-decoration:none;
-      text-transform:uppercase; font-weight:bold; font-size:14px;
-      padding:12px 14px; border-radius:2px;
-      display:flex; align-items:center; justify-content:center;
-    }
-    .cta:active,.cta:hover{ background:#870184; }
+      .language {
+        display: flex;
+        width: 80px;
+        height: 50px;
+        justify-content: space-between;
+        font-size: 14px;
+      }
+      .flag-container { text-align: center; margin: 10px 0px; }
+      .flag { width: 30px; height: 22px; background-size: cover; margin: 10px auto; }
+      .flag.en { background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
+      .flag.de { background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
 
-    /* KREIS-VIEWER mittig darunter */
-    .circle-wrap{
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      width:100%;
-      padding:8px 0 0 0;
-    }
-    /* Der Kreis ist responsiv, bleibt immer 1:1 und zentriert */
-    #myContainer{
-      width: min(92vw, 720px);
-      aspect-ratio: 1 / 1;
-      background:#769b60;
-      clip-path: circle(50% at 50% 50%);
-      -webkit-clip-path: circle(50% at 50% 50%);
-      overflow:hidden;
-    }
+      .hotspot-overlay {
+        width: 10px;
+        height: 10px;
+        background-size: cover;
+        background-repeat: no-repeat;
+        cursor: pointer;
+      }
+      /* Popup Bild */
+      .popup img{ display:block; max-width: 90vw; height: auto; }
+    </style>
 
-    /* FOOTER unten links */
-    .footer{
-      margin-top:auto;                /* drückt Footer nach unten */
-      padding: 6px 20px 18px 20px;
-      max-width:720px;
-    }
-    .language{ display:flex; gap:14px; margin-bottom:6px; }
-    .flag{ width:28px; height:20px; background-size:cover; }
-    .flag.de{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
-    .flag.en{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
-    .text-link{ color:#789f40; text-decoration:none; font-size:12px; }
-    .credit{ font-size:12px; color:#000; margin:2px 0 4px 0; }
+    <!-- Matomo -->
+    <script type="text/javascript">
+      var _paq = window._paq || [];
+      _paq.push(["trackPageView"]);
+      _paq.push(["enableLinkTracking"]);
+      (function() {
+        var u = "https://www.plan-g.at/sub/piwik/";
+        _paq.push(["setTrackerUrl", u + "piwik.php"]);
+        _paq.push(["setSiteId", "4"]);
+        var d = document, g = d.createElement("script"), s = d.getElementsByTagName("script")[0];
+        g.type = "text/javascript"; g.async = true; g.defer = true; g.src = u + "piwik.js";
+        s.parentNode.insertBefore(g, s);
+      })();
+    </script>
+    <!-- End Matomo Code -->
+  </head>
+  <body>
+    <!-- Scrim & Close werden für den Vollbildmodus benutzt -->
+    <div id="viewerScrim" class="viewer-scrim" aria-hidden="true"></div>
+    <button id="viewerClose" class="viewer-close" aria-label="Schließen">✕</button>
 
-    /* Hotspots & Popup */
-    .hotspot-overlay{
-      width:14px;height:14px;border-radius:50%;
-      background-size:cover;background-repeat:no-repeat;
-      box-shadow:0 2px 4px rgba(0,0,0,.3);
-    }
-    .popup{
-      max-width:90vw; max-height:60vh; overflow:hidden;
-      border-radius:8px; background:#fff;
-      box-shadow:0 4px 12px rgba(0,0,0,.3);
-    }
-    .popup img{ display:block; width:100%; height:auto; }
+    <div id="myContainer"></div>
 
-    /* etwas großzügiger auf sehr großen Phones/Tablets */
-    @media (min-width: 820px){
-      .logo{ width:240px }
-      .claim{ font-size:24px }
-      .cta{ font-size:15px; padding:13px 16px }
-    }
-  </style>
-</head>
-<body>
-  <div class="page">
-    <!-- oben links -->
-    <header class="header">
-      <a href="https://plan-g.at/ueber-uns" target="_blank" aria-label="Über uns">
-        <img src="img/logo.png" class="logo" alt="plan:g">
-      </a>
-      <h1 class="claim">
-        Die Welt ist ziemlich klein,<br>
-        Gesundheit ziemlich komplex:<br>
-        Viel Spaß beim Entdecken.
-      </h1>
-      <nav class="ctas" aria-label="Hauptaktionen">
-        <a class="cta" href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank">Dieses Poster</a>
-        <a class="cta" href="https://plan-g.at/projekte/alle-projekte" target="_blank">Unsere Arbeit</a>
-        <a class="cta" href="https://plan-g.at/news-events/informiert-bleiben" target="_blank">Informiert bleiben</a>
-      </nav>
-    </header>
+    <script>
+      // OpenSeadragon
+      var viewer = OpenSeadragon({
+        id: "myContainer",
+        prefixUrl: "openseadragon/images/",
+        tileSources: {
+          type: "image",
+          width: 5787,
+          height: 7722,
+          url: "./img/wimmelbildfinal.jpg",
+          minLevel: 0,
+          maxLevel: 5,
+          buildPyramid: true
+        },
+        showNavigator: true,
+        navigatorPosition: "TOP_RIGHT",
+        defaultZoomLevel: 0,
+        showNavigationControl: true
+      });
 
-    <!-- dann der Kreis -->
-    <main class="circle-wrap">
-      <div id="myContainer"></div>
-    </main>
-
-    <!-- unten links -->
-    <footer class="footer">
-      <div class="language" aria-label="Sprachen">
-        <a href="https://weltgesundheit.org" class="text-link" title="Deutsch"><div class="flag de"></div></a>
-        <a href="https://weltgesundheit.org/en/" class="text-link" title="English"><div class="flag en"></div></a>
-      </div>
-      <p class="credit">Illustration: Alice Ruzzettu</p>
-      <a href="http://plan-g.at/impressum" target="_blank" class="text-link">Impressum</a>
-    </footer>
-  </div>
-
-  <script>
-    /* ===== OpenSeadragon – passt sich automatisch der Kreisgröße an ===== */
-    const viewer = OpenSeadragon({
-      id: "myContainer",
-      prefixUrl: "openseadragon/images/",
-      tileSources: {
-        type: "image",
-        width: 5787,
-        height: 7722,
-        url: "./img/wimmelbildfinal.jpg",
-        minLevel: 0,
-        maxLevel: 5,
-        buildPyramid: true
-      },
-      showNavigator: false,
-      showNavigationControl: false,
-      defaultZoomLevel: 0,
-      gestureSettingsMouse: { clickToZoom:true, dblClickToZoom:true, pinchToZoom:true },
-      gestureSettingsTouch: { clickToZoom:true, dblClickToZoom:true, pinchToZoom:true },
-      constrainDuringPan: true,
-      maxZoomPixelRatio: 2,
-      minZoomImageRatio: 0.5,
-      maxZoomImageRatio: 3
-    });
-
-    // Start: Kreis gut füllen
-    viewer.addHandler('open', () => {
-      viewer.viewport.fitVertically();
-      setTimeout(() => viewer.viewport.zoomBy(1.06), 60);
-    });
-
-    // Bei Größenänderung: neu zeichnen
-    const ro = new ResizeObserver(() => viewer && viewer.forceRedraw());
-    ro.observe(document.getElementById('myContainer'));
-
-    /* ===== Hotspots laden ===== */
-    function loadHotspots(xmlFile){
-      fetch(xmlFile)
-        .then(r => r.text())
-        .then(str => (new DOMParser()).parseFromString(str, "text/xml"))
+      function loadHotspots(xmlFile) {
+        fetch(xmlFile)
+        .then(response => response.text())
+        .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
         .then(xml => {
-          const spots = xml.getElementsByTagName("HOTSPOT");
-          for (let i=0;i<spots.length;i++){
-            const x = parseFloat(spots[i].getAttribute("X"));
-            const y = parseFloat(spots[i].getAttribute("Y"));
-            const id = spots[i].getAttribute("ID");
-            const popupImage = spots[i].getAttribute("POPUP");
+          let hotspots = xml.getElementsByTagName("HOTSPOT");
+          for (let i = 0; i < hotspots.length; i++) {
+            let x = parseFloat(hotspots[i].getAttribute("X"));
+            let y = parseFloat(hotspots[i].getAttribute("Y"));
+            let id = hotspots[i].getAttribute("ID");
+            let popupImage = hotspots[i].getAttribute("POPUP");
             addOverlay(x, y, id, "./Assets/button-wim.png", popupImage);
           }
         })
-        .catch(err => console.error("Error loading XML:", err));
-    }
+        .catch(error => console.error("Error loading XML:", error));
+      }
 
-    function addOverlay(x, y, id, icon, popupImage){
-      const normalizedX = (x * (5787 / 14344)) / 5787;
-      const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
+      function addOverlay(x, y, id, icon, popupImage) {
+        const normalizedX = (x * (5787 / 14344)) / 5787;
+        const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
 
-      const el = document.createElement("div");
-      el.className = "hotspot-overlay";
-      el.style.backgroundImage = `url(${icon})`;
+        var overlay = document.createElement("div");
+        overlay.className = "hotspot-overlay";
+        overlay.style.backgroundImage = `url(${icon})`;
 
-      const handler = (e) => { e.preventDefault(); togglePopup(id, normalizedX, normalizedY, popupImage); };
-      el.addEventListener('touchstart', handler, { passive:false });
-      el.addEventListener('click', handler);
+        overlay.onmouseover = function () { togglePopup(id, normalizedX, normalizedY, popupImage); };
+        overlay.onmouseout  = function () { togglePopup(id, normalizedX, normalizedY, popupImage); };
 
-      viewer.addOverlay({
-        element: el,
-        location: new OpenSeadragon.Point(normalizedX, normalizedY),
-        placement: OpenSeadragon.OverlayPlacement.CENTER
+        viewer.addOverlay({
+          element: overlay,
+          location: new OpenSeadragon.Point(normalizedX, normalizedY),
+          placement: OpenSeadragon.OverlayPlacement.CENTER
+        });
+      }
+
+      function togglePopup(id, x, y, popupImage) {
+        let existingPopup = document.getElementById(`popup-${id}`);
+        if(existingPopup) {
+          existingPopup.remove();
+        } else {
+          let popup = document.createElement("div");
+          popup.className = "popup";
+          popup.id = `popup-${id}`;
+          popup.innerHTML = `<img src="${popupImage}" width="400" alt="Popup ${id}">`;
+
+          viewer.addOverlay({
+            element: popup,
+            location: new OpenSeadragon.Point(x, y),
+            placement: OpenSeadragon.OverlayPlacement.BOTTOM
+          });
+        }
+      }
+      loadHotspots("./src/hotspots.xml");
+
+      /* ===== Vollbild-Öffnen wie „Hover“, aber für Mobile per Tap ===== */
+      const container = document.getElementById('myContainer');
+      const scrim = document.getElementById('viewerScrim');
+      const closeBtn = document.getElementById('viewerClose');
+
+      function openViewer() {
+        container.classList.add('viewer-open');
+        scrim.classList.add('show');
+        closeBtn.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        // leicht ranzoomen, damit der Screen „voll“ wirkt
+        try { viewer.viewport.zoomBy(1.05); } catch(e){}
+      }
+      function closeViewer() {
+        container.classList.remove('viewer-open');
+        scrim.classList.remove('show');
+        closeBtn.classList.remove('show');
+        document.body.style.overflow = '';
+      }
+
+      // Mobile: Tap auf den Kreis öffnet, Tap auf Scrim/Close schließt.
+      container.addEventListener('touchend', (e) => { openViewer(); }, {passive:true});
+      container.addEventListener('click', (e) => {
+        // auf Desktop-Klick ebenfalls öffnen (zusätzlich zum Hover)
+        if (!container.classList.contains('viewer-open')) openViewer();
       });
-    }
 
-    function togglePopup(id, x, y, popupImage){
-      const ex = document.getElementById(`popup-${id}`);
-      if (ex){ ex.remove(); return; }
+      scrim.addEventListener('click', closeViewer);
+      closeBtn.addEventListener('click', closeViewer);
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeViewer(); });
+    </script>
 
-      const popup = document.createElement("div");
-      popup.className = "popup";
-      popup.id = `popup-${id}`;
-      popup.innerHTML = `<img src="${popupImage}" alt="Popup ${id}">`;
+    <div class="logo-container">
+      <a href="https://plan-g.at/ueber-uns" target="blank">
+        <img src="img/signet_bunt.png" class="signet" alt="plan:g Signet"/>
+      </a>
+    </div>
 
-      viewer.addOverlay({
-        element: popup,
-        location: new OpenSeadragon.Point(x, y),
-        placement: OpenSeadragon.OverlayPlacement.BOTTOM
-      });
+    <div class="welcome">
+      <a href="https://plan-g.at/ueber-uns" target="_blank">
+        <img src="img/logo.png" class="logo" alt="plan:g"/>
+      </a>
+      <h1 class="welcomeMessage">
+        Die Welt ist ziemlich klein,<br />
+        Gesundheit ziemlich komplex:<br />
+        Viel Spaß beim Entdecken.
+      </h1>
+      <div class="flexcta">
+        <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" class="link">
+          <div class="cta">Dieses Poster</div>
+        </a>
+        <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" class="link">
+          <div class="cta">Unsere Arbeit</div>
+        </a>
+        <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" class="link">
+          <div class="cta">Informiert bleiben</div>
+        </a>
+      </div>
+    </div>
 
-      setTimeout(() => document.getElementById(`popup-${id}`)?.remove(), 5000);
-    }
-
-    loadHotspots("./src/hotspots.xml");
-  </script>
-</body>
+    <div class="impressum">
+      <div class="language">
+        <div class="flag-container">
+          <a href="https://weltgesundheit.org" class="text-link" aria-label="Deutsch">
+            <div class="flag de"></div>
+          </a>
+        </div>
+        <div class="flag-container">
+          <a href="https://weltgesundheit.org/en/" class="text-link" aria-label="English">
+            <div class="flag en"></div>
+          </a>
+        </div>
+      </div>
+      <p>Illustration: Alice Ruzzettu</p>
+      <a href="http://plan-g.at/impressum" class="text-link" target="_blank">Impressum</a>
+    </div>
+  </body>
 </html>
