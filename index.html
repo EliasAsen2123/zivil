@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <html xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml" lang="en">
   <head>
-    <meta charset="utf-8" />
     <title>Wimmelbild - Plan:g</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link rel="icon" type="image/png" href="favicon.png" />
 
     <!-- OpenSeadragon -->
     <script src="./openseadragon/openseadragon.min.js"></script>
-
     <!-- Browser-Detect (optional) -->
     <script src="detect-browser.js"></script>
     <script>
       const info = (typeof getBrowser === "function" && getBrowser()) || {};
-      // Falls du Browser umleiten willst, hier aktivieren:
       // if (["Microsoft Edge","Safari","Internet Explorer"].includes(info.browser)) {
       //   window.location = "index_ie.html";
       // }
@@ -20,23 +18,27 @@
     </script>
 
     <style>
-      @font-face{ font-family:"circular"; src:url("src/lineto-circular-book.woff") format("woff"); font-weight:normal; }
+      @font-face { font-family:"circular"; src:url("src/lineto-circular-book.woff") format("woff"); font-weight:normal; }
       *{margin:0;padding:0;box-sizing:border-box}
       html,body{height:100%}
       body{font-family:"circular",Arial,sans-serif;background:#f3f3f3;overflow:hidden}
 
-      .logo-container{position:absolute;z-index:1000;top:25px;left:25px;opacity:0;display:none;transition:opacity .3s}
+      .logo-container{
+        position:absolute;z-index:1000;top:25px;left:25px;
+        opacity:0;display:none;transition:opacity .3s;
+      }
       .logo{width:250px;padding-bottom:30px}
       .signet{width:100px}
 
-      /* Viewer: Kreis-Start */
+      /* Viewer Startzustand (Kreis) */
       #myContainer{
         position:absolute; width:100%; height:100vh; left:10vw;
         background:#769b60; z-index:500; overflow:hidden;
         clip-path:circle(20vw at center); -webkit-clip-path:circle(20vw at center);
         transition:clip-path .5s,left .5s;
       }
-      /* Vollbildzustand (nur für Öffnen/Schließen animiert) */
+
+      /* Vollbildzustand per Klasse */
       #myContainer.viewer-open{
         position:fixed; inset:0; left:0 !important; width:100vw;height:100vh;
         clip-path:circle(100vw at 50% 50%); -webkit-clip-path:circle(100vw at 50% 50%);
@@ -61,13 +63,15 @@
       .flag.en{background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg")}
       .flag.de{background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg")}
 
-      /* 🔴 Hotspots – größer & ohne Transition */
+      /* 🔴 Hotspots – jetzt größer */
       .hotspot-overlay{
-        width:26px;height:26px;border-radius:50%;
+        width:26px;         /* vorher 14px */
+        height:26px;
+        border-radius:50%;
         background-size:cover;background-repeat:no-repeat;
-        box-shadow:0 1px 2px rgba(0,0,0,.25);
+        box-shadow:0 2px 4px rgba(0,0,0,.3);
+        /* transform wird dynamisch gesetzt, wenn KEEP_CONSTANT_SIZE = true */
         will-change: transform;
-        transition: none;
       }
 
       .popup img{display:block;max-width:90vw;height:auto}
@@ -85,11 +89,10 @@
     <div id="viewerScrim" class="viewer-scrim" aria-hidden="true"></div>
     <button id="viewerClose" class="viewer-close" aria-label="Schließen">✕</button>
 
-    <!-- OSD Container -->
     <div id="myContainer"></div>
 
     <script>
-      /* ===== OpenSeadragon mit Touch-Optimierung ===== */
+      /* ===== OpenSeadragon ===== */
       const viewer = OpenSeadragon({
         id: "myContainer",
         prefixUrl: "openseadragon/images/",
@@ -102,19 +105,13 @@
           maxLevel: 5,
           buildPyramid: true
         },
-        // UI schlanker auf Touch
+        // UI reduziert für Touch
         showNavigator: !IS_TOUCH,
         navigatorPosition: "TOP_RIGHT",
         showNavigationControl: !IS_TOUCH,
-
-        // Gesten – Touch: kein Click-to-Zoom (Fix gegen "kurz kleiner")
-        gestureSettingsMouse: { clickToZoom:true,  dblClickToZoom:true,  pinchToZoom:true,  flickEnabled:true },
-        gestureSettingsTouch: { clickToZoom:false, dblClickToZoom:true,  pinchToZoom:true,  flickEnabled:true },
-
-        // Rendering / Constraints
-        animationTime: 0.5,
-        blendTime: 0.1,
-        immediateRender: true,
+        defaultZoomLevel: 0,
+        gestureSettingsMouse: { clickToZoom:true, dblClickToZoom:true, pinchToZoom:true, flickEnabled:true },
+        gestureSettingsTouch: { clickToZoom:true, dblClickToZoom:true, pinchToZoom:true, flickEnabled:true },
         constrainDuringPan: true,
         maxZoomPixelRatio: 2,
         minZoomImageRatio: 0.5,
@@ -123,16 +120,16 @@
       });
 
       let HOME_Z = 1;
-      const KEEP_CONSTANT_SIZE = true; // Punkte gleich groß halten
+      const KEEP_CONSTANT_SIZE = true; // ⇐ auf false setzen, wenn Punkte mitzoomen sollen
 
       viewer.addHandler('open', () => {
         viewer.viewport.fitVertically();
-        HOME_Z = viewer.viewport.getZoom(true);
+        HOME_Z = viewer.viewport.getZoom(true); // Referenzzoom (Home)
         setTimeout(() => viewer.viewport.zoomBy(1.04), 50);
         if (KEEP_CONSTANT_SIZE) updateHotspotScale();
       });
 
-      /* ===== Vollbild-Steuerung (nur kurzer Tipp) ===== */
+      /* ===== Vollbildsteuerung (nur kurzer Tipp) ===== */
       const container = document.getElementById('myContainer');
       const scrim = document.getElementById('viewerScrim');
       const closeBtn = document.getElementById('viewerClose');
@@ -141,31 +138,16 @@
         container.classList.add('viewer-open');
         scrim.classList.add('show'); closeBtn.classList.add('show');
         document.body.style.overflow = 'hidden';
-
-        // Nach der Öffnungs-Transition clip-path deaktivieren (Performance)
-        const onTEnd = (e) => {
-          if (e.propertyName.includes('clip-path')) {
-            container.style.clipPath = 'none';
-            container.style.webkitClipPath = 'none';
-            container.removeEventListener('transitionend', onTEnd);
-          }
-        };
-        container.addEventListener('transitionend', onTEnd);
-
         try{ viewer.viewport.applyConstraints(); viewer.forceRedraw(); }catch(e){}
       }
       function closeViewer(){
-        // clip-path für die nächste Öffnung wieder aktivieren
-        container.style.clipPath = '';
-        container.style.webkitClipPath = '';
         container.classList.remove('viewer-open');
         scrim.classList.remove('show'); closeBtn.classList.remove('show');
         document.body.style.overflow = '';
       }
 
-      // Nur OSD-Event nutzen → keine Doppel-Events
       viewer.addHandler('canvas-click', function(e){
-        if (e.quick && !container.classList.contains('viewer-open')) openViewer();
+        if(e.quick && !container.classList.contains('viewer-open')) openViewer();
       });
       scrim.addEventListener('click', closeViewer);
       closeBtn.addEventListener('click', closeViewer);
@@ -198,14 +180,12 @@
         el.className = "hotspot-overlay";
         el.style.backgroundImage = `url(${icon})`;
 
-        // Ein Event-Typ reicht: pointerdown (vereinheitlicht Maus/Touch/Stift)
-        const handler = (ev) => {
-          ev.preventDefault();
-          ev.stopPropagation();                 // blockt OSD Canvas-Click/Zoom
-          togglePopup(id, normalizedX, normalizedY, popupImage);
-        };
-        el.addEventListener('pointerdown', handler, { passive:false });
+        // Click & Touch
+        const handler = (ev) => { ev.preventDefault(); togglePopup(id, normalizedX, normalizedY, popupImage); };
+        el.addEventListener('click', handler);
+        el.addEventListener('touchstart', handler, { passive:false });
 
+        // zum Viewer hinzufügen (zentriert auf Koordinate)
         viewer.addOverlay({
           element: el,
           location: new OpenSeadragon.Point(normalizedX, normalizedY),
@@ -232,19 +212,19 @@
         setTimeout(()=>document.getElementById(nodeId)?.remove(), 5000);
       }
 
-      /* ===== Konstant große Hotspots (ohne animation-Ticks) ===== */
+      /* ===== Konstant große Hotspots (optional) ===== */
       function updateHotspotScale(){
         if (!KEEP_CONSTANT_SIZE) return;
         const z = viewer.viewport.getZoom(true);
-        const base = HOME_Z / z;  // inverse Skalierung relativ zur Start-Zoomstufe
+        const base = HOME_Z / z;               // inverse Skalierung relativ zu "Home"
         document.querySelectorAll('.hotspot-overlay').forEach(el => {
+          // placement:CENTER sorgt bereits für Zentrierung – daher NUR scale
           el.style.transformOrigin = 'center';
           el.style.transform = `scale(${base})`;
         });
       }
       viewer.addHandler('zoom', updateHotspotScale);
-      viewer.addHandler('open', updateHotspotScale);
-      // KEIN 'animation'-Handler → weniger Jank
+      viewer.addHandler('animation', updateHotspotScale);
 
       loadHotspots("./src/hotspots.xml");
     </script>
