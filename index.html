@@ -124,4 +124,139 @@
 
       viewer.addHandler('open', () => {
         viewer.viewport.fitVertically();
-        HOME_Z = viewer.viewport.getZoom(tru_
+        HOME_Z = viewer.viewport.getZoom(true); // Referenzzoom (Home)
+        setTimeout(() => viewer.viewport.zoomBy(1.04), 50);
+        if (KEEP_CONSTANT_SIZE) updateHotspotScale();
+      });
+
+      /* ===== Vollbildsteuerung (nur kurzer Tipp) ===== */
+      const container = document.getElementById('myContainer');
+      const scrim = document.getElementById('viewerScrim');
+      const closeBtn = document.getElementById('viewerClose');
+
+      function openViewer(){
+        container.classList.add('viewer-open');
+        scrim.classList.add('show'); closeBtn.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        try{ viewer.viewport.applyConstraints(); viewer.forceRedraw(); }catch(e){}
+      }
+      function closeViewer(){
+        container.classList.remove('viewer-open');
+        scrim.classList.remove('show'); closeBtn.classList.remove('show');
+        document.body.style.overflow = '';
+      }
+
+      viewer.addHandler('canvas-click', function(e){
+        if(e.quick && !container.classList.contains('viewer-open')) openViewer();
+      });
+      scrim.addEventListener('click', closeViewer);
+      closeBtn.addEventListener('click', closeViewer);
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeViewer(); });
+
+      /* ===== Hotspots ===== */
+      function loadHotspots(xmlFile) {
+        fetch(xmlFile)
+          .then(r => r.text())
+          .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+          .then(xml => {
+            const hotspots = xml.getElementsByTagName("HOTSPOT");
+            for (let i = 0; i < hotspots.length; i++) {
+              const x = parseFloat(hotspots[i].getAttribute("X"));
+              const y = parseFloat(hotspots[i].getAttribute("Y"));
+              const id = hotspots[i].getAttribute("ID");
+              const popupImage = hotspots[i].getAttribute("POPUP");
+              addOverlay(x, y, id, "./Assets/button-wim.png", popupImage);
+            }
+            if (KEEP_CONSTANT_SIZE) updateHotspotScale(); // initiale Größe setzen
+          })
+          .catch(err => console.error("Error loading XML:", err));
+      }
+
+      function addOverlay(x, y, id, icon, popupImage){
+        const normalizedX = (x * (5787 / 14344)) / 5787;
+        const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
+
+        const el = document.createElement("div");
+        el.className = "hotspot-overlay";
+        el.style.backgroundImage = `url(${icon})`;
+
+        // Click & Touch
+        const handler = (ev) => { ev.preventDefault(); togglePopup(id, normalizedX, normalizedY, popupImage); };
+        el.addEventListener('click', handler);
+        el.addEventListener('touchstart', handler, { passive:false });
+
+        // zum Viewer hinzufügen (zentriert auf Koordinate)
+        viewer.addOverlay({
+          element: el,
+          location: new OpenSeadragon.Point(normalizedX, normalizedY),
+          placement: OpenSeadragon.OverlayPlacement.CENTER
+        });
+      }
+
+      function togglePopup(id, x, y, popupImage){
+        const nodeId = `popup-${id}`;
+        const existing = document.getElementById(nodeId);
+        if(existing){ existing.remove(); return; }
+
+        const popup = document.createElement("div");
+        popup.className = "popup";
+        popup.id = nodeId;
+        popup.innerHTML = `<img src="${popupImage}" alt="Popup ${id}">`;
+
+        viewer.addOverlay({
+          element: popup,
+          location: new OpenSeadragon.Point(x, y),
+          placement: OpenSeadragon.OverlayPlacement.BOTTOM
+        });
+
+        setTimeout(()=>document.getElementById(nodeId)?.remove(), 5000);
+      }
+
+      /* ===== Konstant große Hotspots (optional) ===== */
+      function updateHotspotScale(){
+        if (!KEEP_CONSTANT_SIZE) return;
+        const z = viewer.viewport.getZoom(true);
+        const base = HOME_Z / z;               // inverse Skalierung relativ zu "Home"
+        document.querySelectorAll('.hotspot-overlay').forEach(el => {
+          // placement:CENTER sorgt bereits für Zentrierung – daher NUR scale
+          el.style.transformOrigin = 'center';
+          el.style.transform = `scale(${base})`;
+        });
+      }
+      viewer.addHandler('zoom', updateHotspotScale);
+      viewer.addHandler('animation', updateHotspotScale);
+
+      loadHotspots("./src/hotspots.xml");
+    </script>
+
+    <!-- (dein restliches Layout) -->
+    <div class="logo-container">
+      <a href="https://plan-g.at/ueber-uns" target="blank">
+        <img src="img/signet_bunt.png" class="signet" alt="plan:g Signet"/>
+      </a>
+    </div>
+
+    <div class="welcome">
+      <a href="https://plan-g.at/ueber-uns" target="_blank">
+        <img src="img/logo.png" class="logo" alt="plan:g"/>
+      </a>
+      <h1 class="welcomeMessage">
+        Die Welt ist ziemlich klein,<br/>Gesundheit ziemlich komplex:<br/>Viel Spaß beim Entdecken.
+      </h1>
+      <div class="flexcta">
+        <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" class="text-link"><div class="cta">Dieses Poster</div></a>
+        <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" class="text-link"><div class="cta">Unsere Arbeit</div></a>
+        <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" class="text-link"><div class="cta">Informiert bleiben</div></a>
+      </div>
+    </div>
+
+    <div class="impressum">
+      <div class="language">
+        <div class="flag-container"><a href="https://weltgesundheit.org" class="text-link"><div class="flag de"></div></a></div>
+        <div class="flag-container"><a href="https://weltgesundheit.org/en/" class="text-link"><div class="flag en"></div></a></div>
+      </div>
+      <p>Illustration: Alice Ruzzettu</p>
+      <a href="http://plan-g.at/impressum" class="text-link" target="_blank">Impressum</a>
+    </div>
+  </body>
+</html>
