@@ -10,136 +10,173 @@
   <script src="./openseadragon/openseadragon.min.js"></script>
   <script src="detect-browser.js"></script>
   <script>
-    const info = getBrowser();
-    if (info.browser === "Microsoft Edge" || info.browser === "Safari" || info.browser === "Internet Explorer") {
+    const info = getBrowser?.() || {};
+    if (["Microsoft Edge","Safari","Internet Explorer"].includes(info.browser)) {
       window.location = "index_ie.html";
     }
   </script>
 
   <style>
-    @font-face {
-      font-family: "circular";
-      src: url("src/lineto-circular-book.woff") format("woff");
-      font-weight: normal;
+    @font-face{
+      font-family:"circular";
+      src:url("src/lineto-circular-book.woff") format("woff");
+      font-weight:normal;
     }
+    *{box-sizing:border-box;margin:0;padding:0}
 
-    * { margin:0; padding:0; box-sizing:border-box; }
-
-    html, body { height:100%; }
-    body {
-      font-family: "circular", Arial, sans-serif;
+    html,body{height:100%}
+    body{
+      font-family:"circular",Arial,sans-serif;
       background:#f3f3f3;
-      overflow:hidden;  /* wie Desktop */
+      overflow:hidden; /* wichtig: kein Scrollen, Bühne skaliert */
+      padding:
+        max(env(safe-area-inset-top),0px)
+        max(env(safe-area-inset-right),0px)
+        max(env(safe-area-inset-bottom),0px)
+        max(env(safe-area-inset-left),0px);
     }
 
-    /* --- Layout wie Desktop (auch auf Handy) --- */
-    .page {
+    /* === feste Desktop-Bühne, die wir skalieren === */
+    .stage-wrap{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-start;
+      /* Zentrieren, falls Bühnengröße kleiner als Viewport skaliert wird */
+    }
+
+    /* „Bühne“ in Desktop-Maßen (wird via transform skaliert) */
+    .stage{
       position:relative;
-      height:100vh;
-      width:100vw;
+      width: 1340px;     /* BASE_LEFT_WIDTH + CIRCLE_DIAMETER (s.u.) */
+      height: 820px;     /* Basis-Höhe, Desktop-Anmutung */
+      transform-origin: top left;
+      will-change: transform;
     }
 
-    /* Linke Spalte: Logo + Claim + Buttons */
-    .welcome {
+    /* Linke Spalte */
+    .left{
       position:absolute;
-      z-index:250;
-      top:51px;
-      left:22px;
-      width:min(72vw, 480px);
+      top:51px; left:22px;
+      width: 520px;      /* BASE_LEFT_WIDTH */
+      z-index:10;
     }
-    .logo { width:220px; padding-bottom:24px; }
-    .welcomeMessage { margin-top:16px; font-size:22px; line-height:1.35; }
-    .flexcta { width:100%; padding-top:36px; display:flex; flex-wrap:wrap; gap:12px; }
-    .cta {
+    .logo{ width:250px; padding-bottom:24px; }
+    .claim{ font-size:28px; line-height:1.28; margin-top:8px; }
+
+    .ctas{ display:flex; flex-wrap:wrap; gap:12px; margin-top:36px; }
+    .cta{
       max-width:230px; background:#789f40; color:#fff; text-decoration:none;
       text-transform:uppercase; font-weight:bold; font-size:16px;
       padding:14px; display:flex; align-items:center; justify-content:center;
-      transition:background-color .3s;
+      transition:background-color .25s;
     }
-    .cta:active, .cta:hover { background:#870184; }
+    .cta:active,.cta:hover{ background:#870184; }
 
-    /* Impressum + Sprachen unten links */
-    .impressum {
-      position:absolute; bottom:18px; left:22px; z-index:260;
-      font-size:14px; line-height:1.4;
+    .impressum{
+      position:absolute; left:22px; bottom:18px; font-size:14px; line-height:1.4;
     }
-    .language { display:flex; gap:14px; margin-bottom:8px; }
-    .flag { width:28px; height:20px; background-size:cover; }
-    .flag.de { background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
-    .flag.en { background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
-    .text-link { color:#789f40; text-decoration:none; }
+    .language{ display:flex; gap:14px; margin-bottom:6px; }
+    .flag{ width:28px; height:20px; background-size:cover; }
+    .flag.de{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
+    .flag.en{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
+    .text-link{ color:#789f40; text-decoration:none; }
 
-    /* Rechte Seite: runder Viewer wie am Desktop */
-    #myContainer {
+    /* Rechte Spalte: runder Viewer */
+    .right{
       position:absolute;
-      top:50%;
-      right: clamp(16px, 8vw, 80px);
-      transform: translateY(-50%);
-      width: clamp(260px, 86vw, 820px);
-      height: clamp(260px, 86vw, 820px);
+      top: 0;
+      left: 520px;      /* exakt neben der linken Spalte */
+      width: 820px;     /* CIRCLE_DIAMETER */
+      height: 820px;
+      display:flex; align-items:center; justify-content:center;
+      pointer-events:none; /* Container selbst nicht klickbar */
+    }
+    #myContainer{
+      width: 820px; height: 820px;
       background:#769b60;
-      /* fester Kreis (auf Handy kein Hover) */
       clip-path: circle(50% at 50% 50%);
       -webkit-clip-path: circle(50% at 50% 50%);
-      z-index:500;
       overflow:hidden;
+      pointer-events:auto; /* nur der Viewer interaktiv */
     }
 
-    /* Hotspots */
-    .hotspot-overlay {
-      width:14px; height:14px;
-      background-size:cover; background-repeat:no-repeat;
-      border-radius:50%;
+    /* Hotspots & Popup */
+    .hotspot-overlay{
+      width:14px;height:14px;border-radius:50%;
+      background-size:cover;background-repeat:no-repeat;
       box-shadow:0 2px 4px rgba(0,0,0,.3);
     }
-
-    /* Popups */
-    .popup {
-      max-width:80vw; max-height:60vh; overflow:hidden; border-radius:8px;
-      box-shadow:0 4px 12px rgba(0,0,0,.3); background:#fff;
+    .popup{
+      max-width:620px; max-height:60vh; overflow:hidden;
+      border-radius:8px; background:#fff;
+      box-shadow:0 4px 12px rgba(0,0,0,.3);
     }
-    .popup img { width:100%; height:auto; display:block; }
-
-    /* sehr kleine Geräte etwas kompakter */
-    @media (max-width: 380px) {
-      .logo { width:190px; }
-      .welcomeMessage { font-size:20px; }
-      .cta { font-size:14px; padding:12px; }
-    }
+    .popup img{ display:block; width:100%; height:auto; }
   </style>
 </head>
 <body>
-  <div class="page">
-    <!-- Kreis-Viewer rechts -->
-    <div id="myContainer"></div>
-
-    <!-- Linke Inhalte wie Desktop -->
-    <div class="welcome">
-      <a href="https://plan-g.at/ueber-uns" target="_blank"><img src="img/logo.png" class="logo" alt="plan:g"/></a>
-      <h1 class="welcomeMessage">
-        Die Welt ist ziemlich klein,<br/>
-        Gesundheit ziemlich komplex:<br/>
-        Viel Spaß beim Entdecken.
-      </h1>
-      <div class="flexcta">
-        <a class="cta" href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank">Dieses Poster</a>
-        <a class="cta" href="https://plan-g.at/projekte/alle-projekte" target="_blank">Unsere Arbeit</a>
-        <a class="cta" href="https://plan-g.at/news-events/informiert-bleiben" target="_blank">Informiert bleiben</a>
+  <div class="stage-wrap">
+    <div id="stage" class="stage" aria-hidden="false">
+      <div class="left">
+        <a href="https://plan-g.at/ueber-uns" target="_blank"><img src="img/logo.png" class="logo" alt="plan:g"></a>
+        <h1 class="claim">
+          Die Welt ist ziemlich klein,<br>
+          Gesundheit ziemlich komplex:<br>
+          Viel Spaß beim Entdecken.
+        </h1>
+        <div class="ctas">
+          <a class="cta" href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank">Dieses Poster</a>
+          <a class="cta" href="https://plan-g.at/projekte/alle-projekte" target="_blank">Unsere Arbeit</a>
+          <a class="cta" href="https://plan-g.at/news-events/informiert-bleiben" target="_blank">Informiert bleiben</a>
+        </div>
       </div>
-    </div>
 
-    <div class="impressum">
-      <div class="language">
-        <a href="https://weltgesundheit.org" class="text-link" title="Deutsch"><div class="flag de"></div></a>
-        <a href="https://weltgesundheit.org/en/" class="text-link" title="English"><div class="flag en"></div></a>
+      <div class="right">
+        <div id="myContainer"></div>
       </div>
-      <p>Illustration: Alice Ruzzettu</p>
-      <a href="http://plan-g.at/impressum" target="_blank" class="text-link">Impressum</a>
+
+      <div class="impressum">
+        <div class="language">
+          <a href="https://weltgesundheit.org" class="text-link" title="Deutsch"><div class="flag de"></div></a>
+          <a href="https://weltgesundheit.org/en/" class="text-link" title="English"><div class="flag en"></div></a>
+        </div>
+        <p>Illustration: Alice Ruzzettu</p>
+        <a href="http://plan-g.at/impressum" target="_blank" class="text-link">Impressum</a>
+      </div>
     </div>
   </div>
 
   <script>
-    // OpenSeadragon – mobil reduziert, ohne UI-Controls
+    /* ===== 1) Bühnenskalierung: sorgt dafür, dass die Desktop-Bühne
+             auf JEDEM Handy exakt gleich aussieht ===== */
+
+    const BASE = {
+      LEFT_WIDTH: 520,           // px
+      CIRCLE: 820,               // Durchmesser
+      STAGE_W: 520+820,          // 1340
+      STAGE_H: 820               // 820
+    };
+
+    const stage = document.getElementById('stage');
+
+    function fitStageToViewport(){
+      const vw = window.innerWidth  - (parseInt(getComputedStyle(document.body).paddingLeft) + parseInt(getComputedStyle(document.body).paddingRight));
+      const vh = window.innerHeight - (parseInt(getComputedStyle(document.body).paddingTop)  + parseInt(getComputedStyle(document.body).paddingBottom));
+
+      // Skaliere so, dass die ganze Bühne in den Viewport passt
+      const sx = vw / BASE.STAGE_W;
+      const sy = vh / BASE.STAGE_H;
+      const scale = Math.min(sx, sy, 1); // nie größer als 1 (Desktopgröße)
+      stage.style.transform = `scale(${scale})`;
+    }
+
+    window.addEventListener('resize', () => { fitStageToViewport(); viewer?.forceRedraw(); });
+    window.addEventListener('orientationchange', () => setTimeout(() => { fitStageToViewport(); viewer?.forceRedraw(); }, 100));
+    fitStageToViewport();
+
+    /* ===== 2) OpenSeadragon ===== */
     const viewer = OpenSeadragon({
       id: "myContainer",
       prefixUrl: "openseadragon/images/",
@@ -163,33 +200,31 @@
       maxZoomImageRatio: 3
     });
 
-    // Beim Öffnen Bild einpassen (kreisfläche möglichst füllen)
+    // Beim Öffnen: Bild so setzen, dass es den Kreis gut füllt
     viewer.addHandler('open', () => {
-      // leichter Zoom, damit keine weißen Ränder im Kreis
       viewer.viewport.fitVertically();
-      setTimeout(() => viewer.viewport.zoomBy(1.05), 60);
+      setTimeout(() => viewer.viewport.zoomBy(1.06), 60);
     });
 
-    // --- Hotspots laden ---
-    function loadHotspots(xmlFile) {
+    /* ===== 3) Hotspots ===== */
+    function loadHotspots(xmlFile){
       fetch(xmlFile)
         .then(r => r.text())
-        .then(str => new DOMParser().parseFromString(str, "text/xml"))
+        .then(str => (new DOMParser()).parseFromString(str, "text/xml"))
         .then(xml => {
-          const hs = xml.getElementsByTagName("HOTSPOT");
-          for (let i = 0; i < hs.length; i++) {
-            const x = parseFloat(hs[i].getAttribute("X"));
-            const y = parseFloat(hs[i].getAttribute("Y"));
-            const id = hs[i].getAttribute("ID");
-            const popupImage = hs[i].getAttribute("POPUP");
+          const spots = xml.getElementsByTagName("HOTSPOT");
+          for (let i=0;i<spots.length;i++){
+            const x = parseFloat(spots[i].getAttribute("X"));
+            const y = parseFloat(spots[i].getAttribute("Y"));
+            const id = spots[i].getAttribute("ID");
+            const popupImage = spots[i].getAttribute("POPUP");
             addOverlay(x, y, id, "./Assets/button-wim.png", popupImage);
           }
         })
         .catch(err => console.error("Error loading XML:", err));
     }
 
-    // --- FIX: Overlay wurde in deiner Mobile-Version nicht hinzugefügt ---
-    function addOverlay(x, y, id, icon, popupImage) {
+    function addOverlay(x, y, id, icon, popupImage){
       const normalizedX = (x * (5787 / 14344)) / 5787;
       const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
 
@@ -197,15 +232,11 @@
       el.className = "hotspot-overlay";
       el.style.backgroundImage = `url(${icon})`;
 
-      // Touch + Click
-      const handler = (e) => {
-        e.preventDefault();
-        togglePopup(id, normalizedX, normalizedY, popupImage);
-      };
+      const handler = (e) => { e.preventDefault(); togglePopup(id, normalizedX, normalizedY, popupImage); };
       el.addEventListener('touchstart', handler, { passive:false });
       el.addEventListener('click', handler);
 
-      // >>> tatsächlich zum Viewer hinzufügen
+      // WICHTIG: tatsächlich hinzufügen
       viewer.addOverlay({
         element: el,
         location: new OpenSeadragon.Point(normalizedX, normalizedY),
@@ -213,12 +244,10 @@
       });
     }
 
-    function togglePopup(id, x, y, popupImage) {
-      const existing = document.getElementById(`popup-${id}`);
-      if (existing) {
-        existing.remove();
-        return;
-      }
+    function togglePopup(id, x, y, popupImage){
+      const ex = document.getElementById(`popup-${id}`);
+      if (ex){ ex.remove(); return; }
+
       const popup = document.createElement("div");
       popup.className = "popup";
       popup.id = `popup-${id}`;
@@ -230,7 +259,6 @@
         placement: OpenSeadragon.OverlayPlacement.BOTTOM
       });
 
-      // Auto-close nach 5s
       setTimeout(() => document.getElementById(`popup-${id}`)?.remove(), 5000);
     }
 
@@ -238,3 +266,4 @@
   </script>
 </body>
 </html>
+
