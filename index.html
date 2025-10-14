@@ -63,7 +63,7 @@
     height: 100vh;
     background: #000;
   }
-  /* Pseudo-Vollbild (Fallback) */
+  /* Pseudo-Vollbild (Fallback wenn Fullscreen API fehlt) */
   .pseudo-fs .circle{
     clip-path: none !important;
     border-radius: 0 !important;
@@ -75,23 +75,24 @@
     z-index: 998 !important;
   }
 
-  /* OpenSeadragon Container */
+  /* OpenSeadragon Container (unter das X legen) */
   #myContainer{
     position: absolute; inset: 0;
     width: 100%; height: 100%;
     background: transparent;
     touch-action: manipulation;
-    z-index: 1;
+    z-index: 1; /* X-Button darüber */
   }
 
-  /* ========= Hotspots: EXAKT wie Desktop (kleine, weiße Punkte) ========= */
+  /* ========= Hotspots: weiß wie Desktop ========= */
   .hotspot-overlay{
-    width: 10px; height: 10px;
-    background: #fff;                 /* weiße Punkte */
-    background-image: none !important;/* kein Icon */
-    border: 0;                        /* kein Rand */
+    width: 22px; height: 22px;
+    background: #fff;                 /* SOLID WEISS */
+    background-size: contain;
+    background-repeat:no-repeat;
+    border: 1px solid rgba(0,0,0,.25);
     border-radius: 999px;
-    box-shadow: none;                 /* kein Schatten */
+    box-shadow: 0 1px 4px rgba(0,0,0,.35);
     cursor: pointer;
     touch-action: manipulation;
     opacity: 1;
@@ -99,7 +100,7 @@
   }
   .circle.is-fullscreen .hotspot-overlay,
   .pseudo-fs .hotspot-overlay{
-    opacity:1;
+    opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3);
   }
 
   /* ========= Popup ========= */
@@ -228,14 +229,14 @@
     return { nx, ny };
   }
 
-  // --- Hotspots Größe/Skalierung (Basis = 10 wie Desktop, minimal dynamisch) ---
-  let BASE_SIZE = 10, MIN_SIZE = 10, MAX_SIZE = 16;
+  // --- Hotspots Größe/Skalierung ---
+  let BASE_SIZE = 20, MIN_SIZE = 14, MAX_SIZE = 26;
   function applyHotspotScale(){
     const z = viewer.viewport.getZoom(true);
     const circleEl = document.getElementById('circle');
     const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-    const fs = isFs ? 1.0 : 1.0; // gleiche Größe in/außerhalb Vollbild
-    const size = Math.max(MIN_SIZE, Math.min(MAX_SIZE, BASE_SIZE * fs * (1 + (z-1)*0.08)));
+    const fs = isFs ? 0.92 : 1.0;
+    const size = Math.max(MIN_SIZE, Math.min(MAX_SIZE, BASE_SIZE * fs * (0.9 + (z-1)*0.12)));
     document.querySelectorAll('.hotspot-overlay').forEach(el => {
       el.style.width  = `${size}px`;
       el.style.height = `${size}px`;
@@ -303,15 +304,18 @@
     if (supportsFullscreen()){
       exitFullscreen();
     } else {
+      // Pseudo-FS verlassen
       setFullscreenClasses(false);
       updatePanBounds(false);
     }
   });
 
-  // ==== Handy: Tap ins Bild → automatisch Vollbild ====
+  // ==== Touch/Klick → automatisch Vollbild ====
   const containerEl = document.getElementById('myContainer');
 
+  // Handy: Touch
   containerEl.addEventListener('touchend', async (e)=>{
+    // nur einfacher Tap
     if (e.touches && e.touches.length === 0){
       const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
       if (!alreadyFs){
@@ -321,7 +325,7 @@
     }
   }, { passive: false });
 
-  // Fallback: Klick (manche Browser feuern Click nach Touch)
+  // Fallback: Klick (einige Browser feuern Click nach Touch)
   containerEl.addEventListener('click', async ()=>{
     const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
     if (!alreadyFs){
@@ -413,7 +417,7 @@
         for (let i = 0; i < nodes.length; i++) {
           const x = parseFloat(nodes[i].getAttribute("X"));
           const y = parseFloat(nodes[i].getAttribute("Y"));
-          const id = nodes[i].getAttribute("ID"));
+          const id = nodes[i].getAttribute("ID");
           const popupImage = nodes[i].getAttribute("POPUP");
           const popupText  = nodes[i].getAttribute("TEXT")  || nodes[i].getAttribute("DESC") || "";
           const popupTitle = nodes[i].getAttribute("TITLE") || nodes[i].getAttribute("LABEL") || "";
@@ -436,6 +440,7 @@
     const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
     if (alreadyFs) return Promise.resolve();
 
+    // echter Fullscreen
     if (supportsFullscreen()){
       return new Promise((resolve)=>{
         const onChange = ()=>{ document.removeEventListener('fullscreenchange', onChange); resolve(); };
