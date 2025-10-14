@@ -90,6 +90,14 @@
   .fs-exit{ position:absolute; top:10px; right:10px; z-index:10; display:none; width:38px; height:38px; border-radius:999px; border:0; background:#111; color:#fff; font-size:22px; line-height:1; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,.25); cursor:pointer; opacity:.92; }
   .fs-exit:active{ transform:scale(.98); }
   .circle.is-fullscreen .fs-exit{ display:inline-flex; }
+  /* ========= Vollbild-Buttons ========= */
+  .fs-enter,.fs-exit{ position:absolute; top:10px; right:10px; z-index:10; width:38px; height:38px; border-radius:999px; border:0; background:#111; color:#fff; font-size:20px; line-height:1; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,.25); cursor:pointer; opacity:.92; }
+  .fs-enter:active,.fs-exit:active{ transform:scale(.98); }
+  .fs-exit{ display:none; font-size:22px; }
+  .circle.is-fullscreen .fs-exit{ display:inline-flex; }
+  .circle.is-fullscreen .fs-enter{ display:none; }
+  /* in Vollbild kein runder Ausschnitt und kein grüner Rand */
+  .circle.is-fullscreen{ clip-path:none; border-radius:0; width:100vw; height:100vh; background:#000; }
 </style>
 </head>
 
@@ -116,6 +124,7 @@
   <!-- Wimmelbild als Kreis -->
   <section class="circle-wrap" aria-label="Interaktives Wimmelbild">
     <div class="circle">
+      <button id="enterFsBtn" class="fs-enter" type="button" aria-label="Vollbild" title="Vollbild">⤢</button>
       <button id="exitFsBtn" class="fs-exit" type="button" aria-label="Vollbild schließen" title="Schließen">×</button>
       <div id="myContainer" role="application" aria-label="Wimmelbild Viewer"></div>
     </div>
@@ -171,7 +180,10 @@
 
   // ===== Vollbild-Logik =====
   const circleEl = document.querySelector('.circle');
-  const exitBtn = document.getElementById('exitFsBtn');
+  const enterBtn = document.getElementById('enterFsBtn');
+  const exitBtn  = document.getElementById('exitFsBtn');
+
+  const defaults = { visibilityRatio: viewer.viewport.getVisibilityRatio(), constrainDuringPan: viewer.constrainDuringPan, minZoomImageRatio: viewer.minZoomImageRatio };
 
   function enterFullscreen(){ if (circleEl.requestFullscreen) circleEl.requestFullscreen(); }
   function exitFullscreen(){ if (document.fullscreenElement) document.exitFullscreen(); }
@@ -180,11 +192,22 @@
     const isFs = document.fullscreenElement === circleEl;
     circleEl.classList.toggle('is-fullscreen', isFs);
     if (isFs){
+      // frei bewegen & näher ran
+      viewer.constrainDuringPan = false;
+      viewer.viewport.setVisibilityRatio(0.2);
+      viewer.minZoomImageRatio = 0.8;
       const hz = viewer.viewport.getHomeZoom();
       viewer.viewport.zoomTo(hz * 1.12, null, true);
+    } else {
+      // Defaults wiederherstellen
+      viewer.constrainDuringPan = defaults.constrainDuringPan;
+      viewer.viewport.setVisibilityRatio(defaults.visibilityRatio);
+      viewer.minZoomImageRatio = defaults.minZoomImageRatio;
     }
+    applyHotspotScale();
   });
-  exitBtn.addEventListener('click', (e)=>{ e.stopPropagation(); exitFullscreen(); });
+  enterBtn.addEventListener('click', (e)=>{ e.stopPropagation(); enterFullscreen(); });
+  exitBtn.addEventListener('click',  (e)=>{ e.stopPropagation(); exitFullscreen(); });
 
   // --- Hotspots (aus XML) ---
   const SOURCE_W = 5787, SOURCE_H = 7722;
@@ -266,10 +289,7 @@
     if (el){ el.remove(); if (openPopupId === id) openPopupId = null; }
   }
 
-  viewer.addHandler("canvas-click", function(ev){
-    // Beim ersten Tap in den Viewer: in den Vollbildmodus wechseln
-    if (!document.fullscreenElement){
-      enterFullscreen();
+  viewer.addHandler("canvas-click", function(){ if (openPopupId) closePopup(openPopupId); });
       return;
     }
     if (openPopupId) closePopup(openPopupId);
