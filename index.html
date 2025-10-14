@@ -1,285 +1,258 @@
 <!DOCTYPE html>
-<html xml:lang="DE" xmlns="http://www.w3.org/1999/xhtml" lang="de">
-  <head>
-    <title>Wimmelbild - Plan:g (verbessert)</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <link rel="icon" type="image/png" href="favicon.png" />
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Wimmelbild – Plan:g (Mobile + Vollbild)</title>
+<link rel="icon" type="image/png" href="favicon.png" />
+<script src="./openseadragon/openseadragon.min.js"></script>
 
-    <!-- OpenSeadragon -->
-    <script src="./openseadragon/openseadragon.min.js"></script>
-    <!-- Browser-Detect (optional) -->
-    <script src="detect-browser.js"></script>
-    <script>
-      const info = (typeof getBrowser === "function" && getBrowser()) || {};
-      const IS_TOUCH = matchMedia("(pointer:coarse)").matches;
-    </script>
+<style>
+  /* ========= Basis ========= */
+  :root{
+    --green:#789f40;
+    --green-dark:#769b60;
+    --accent:#870184;
+    --bg:#f3f3f3;
+    --pad: clamp(14px, 4vw, 20px);
+  }
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--bg); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:#111; }
+  a{ color:inherit; text-decoration:none; }
 
-    <style>
-      @font-face { font-family:"circular"; src:url("src/lineto-circular-book.woff") format("woff"); font-weight:normal; }
-      *{margin:0;padding:0;box-sizing:border-box}
-      html,body{height:100%}
-      body{font-family:"circular",Arial,sans-serif;background:#f3f3f3;overflow:hidden}
+  /* ========= Header ========= */
+  .m-header{ padding: calc(env(safe-area-inset-top) + 14px) var(--pad) 8px; }
+  .m-header__logo{ width: clamp(150px, 48vw, 220px); height:auto; display:block; }
 
-      .logo-container{
-        position:absolute;z-index:1000;top:25px;left:25px;
-        opacity:1;display:block;transition:opacity .3s;
-      }
-      .logo{width:250px;padding-bottom:30px}
-      .signet{width:100px}
+  .cta{ margin-top:10px; font-weight:700; text-transform:uppercase; font-size: clamp(13px, 3.7vw, 16px); background:var(--green); color:#fff; padding:12px 16px; border-radius:14px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.12); }
+  .cta:active{ transform: scale(.98); }
+  .m-ctas{ margin-top:12px; display:grid; gap:10px; max-width:360px; }
 
-      /* Viewer Startzustand (Kreis) */
-      #myContainer{
-        position:absolute; width:100%; height:100vh; left:10vw;
-        background:#769b60; z-index:500; overflow:hidden;
-        clip-path:circle(20vw at center); -webkit-clip-path:circle(20vw at center);
-        transition:clip-path .5s,left .5s, border-radius .5s;
-      }
+  /* ========= Headline ========= */
+  .m-headline{ padding: 8px var(--pad) 0; }
+  .m-headline h1{ margin:0; font-size: clamp(18px, 5.2vw, 22px); line-height:1.28; }
 
-      /* Vollbildzustand per Klasse */
-      #myContainer.viewer-open{
-        position:fixed; inset:0; left:0 !important; width:100vw;height:100vh;
-        clip-path:circle(100vw at 50% 50%); -webkit-clip-path:circle(100vw at 50% 50%);
-        z-index:1200;
-      }
+  /* ========= Kreis-Viewer ========= */
+  .circle-wrap{ padding: 18px var(--pad) 6px; display:grid; place-items: center; }
+  .circle{ width: min(86vw, 520px); aspect-ratio: 1 / 1; border-radius: 999px; clip-path: circle(50% at 50% 50%); background: var(--green-dark); overflow: hidden; position: relative; box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+  /* OpenSeadragon in Kreis */
+  #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; }
 
-      /* Wenn der Viewer offen ist: restliches UI ausblenden für bessere Sicht */
-      body.viewer-mode .welcome,
-      body.viewer-mode .impressum,
-      body.viewer-mode .logo-container{ display:none !important; }
+  /* ========= Vollbild-Modus ========= */
+  .viewer-scrim{ position:fixed; inset:0; background:rgba(0,0,0,.38); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:1190; }
+  .viewer-scrim.show{ opacity:1; pointer-events:auto; }
+  .viewer-close{ position:fixed; top: max(12px, calc(env(safe-area-inset-top) + 8px)); right: max(12px, calc(env(safe-area-inset-right) + 8px)); z-index:1300; width:48px; height:48px; border:0; border-radius:999px; background:rgba(0,0,0,.62); color:#fff; font-size:26px; line-height:48px; text-align:center; cursor:pointer; opacity:0; pointer-events:none; transition:opacity .15s, transform .12s; backdrop-filter: blur(2px) saturate(120%); }
+  .viewer-close.show{ opacity:1; pointer-events:auto; }
+  .viewer-close:hover{ transform:scale(1.04); }
+  .viewer-close:active{ transform:scale(.98); }
 
-      .viewer-scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:1190}
-      .viewer-scrim.show{opacity:1;pointer-events:auto}
+  /* Container wird im Vollbild aufgezogen */
+  #myContainer.viewer-open{ position:fixed; inset:0; width:100vw; height:100vh; clip-path: none; border-radius:0; z-index:1200; background:#000; }
 
-      /* Deutlich sichtbares X oben rechts nur im Vollbild */
-      .viewer-close{
-        position:fixed;top:14px;right:14px;z-index:1300;width:48px;height:48px;
-        border:0;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;
-        font-size:26px;line-height:48px;text-align:center;cursor:pointer;
-        opacity:0;pointer-events:none;transition:opacity .2s, transform .15s ease;
-        backdrop-filter:saturate(120%) blur(2px);
-      }
-      .viewer-close:hover{transform:scale(1.04)}
-      .viewer-close:active{transform:scale(0.98)}
-      .viewer-close.show{opacity:1;pointer-events:auto}
+  /* UI im Vollbild ausblenden für bessere Sicht */
+  body.viewer-mode .m-header,
+  body.viewer-mode .m-headline,
+  body.viewer-mode .m-footer{ display:none !important; }
 
-      .welcome{position:absolute;z-index:250;top:51px;left:22px;width:70%}
-      .welcomeMessage{margin-top:20px}
-      .flexcta{width:60%;padding-top:60px}
-      .cta{max-width:230px;background:#789f40;padding:15px;color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center;text-transform:uppercase;font-weight:bold;font-size:18px;transition:background-color .25s;margin:20px 0 0 0}
-      .cta:hover{background:#870184}
+  /* ========= Hotspots ========= */
+  .hotspot-overlay{ width:22px; height:22px; background-size:contain; background-repeat:no-repeat; background-color:transparent; border:0; border-radius:999px; cursor:pointer; touch-action:manipulation; box-shadow:0 2px 6px rgba(0,0,0,.2); }
 
-      .impressum{position:absolute;bottom:20px;left:22px;z-index:260;font-size:18px;line-height:1.5}
-      .text-link{color:#789f40;text-decoration:none}
-      .language{display:flex;width:80px;height:50px;justify-content:space-between;font-size:14px}
-      .flag{width:30px;height:22px;background-size:cover;margin:10px auto}
-      .flag.en{background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg")}
-      .flag.de{background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg")}
+  /* Popups */
+  .popup img{ display:block; max-width:90vw; height:auto; box-shadow:0 6px 24px rgba(0,0,0,.25); border-radius:12px; }
+</style>
+</head>
 
-      /* 🔴 Hotspots – etwas kleiner */
-      .hotspot-overlay{
-        width:18px;         /* vorher 26px */
-        height:18px;
-        border-radius:50%;
-        background-size:cover;background-repeat:no-repeat;
-        box-shadow:0 2px 4px rgba(0,0,0,.3);
-        will-change: transform;
-      }
+<body>
+  <!-- Scrim & Close fürs Vollbild -->
+  <div id="viewerScrim" class="viewer-scrim" aria-hidden="true"></div>
+  <button id="viewerClose" class="viewer-close" aria-label="Schließen (Esc)" title="Schließen">✕</button>
 
-      .popup img{display:block;max-width:90vw;height:auto}
-    </style>
-
-    <!-- Matomo -->
-    <script>
-      var _paq = window._paq || [];
-      _paq.push(["trackPageView"]); _paq.push(["enableLinkTracking"]);
-      (function(){var u="https://www.plan-g.at/sub/piwik/";_paq.push(["setTrackerUrl",u+"piwik.php"]);_paq.push(["setSiteId","4"]);var d=document,g=d.createElement("script"),s=d.getElementsByTagName("script")[0];g.async=true;g.defer=true;g.src=u+"piwik.js";s.parentNode.insertBefore(g,s);})();
-    </script>
-  </head>
-  <body>
-    <!-- Scrim & Close für Vollbild -->
-    <div id="viewerScrim" class="viewer-scrim" aria-hidden="true"></div>
-    <button id="viewerClose" class="viewer-close" aria-label="Schließen" title="Schließen (Esc)">✕</button>
-
-    <div id="myContainer" aria-label="Wimmelbild-Viewer" role="application"></div>
-
-    <script>
-      /* ===== OpenSeadragon ===== */
-      const viewer = OpenSeadragon({
-        id: "myContainer",
-        prefixUrl: "openseadragon/images/",
-        tileSources: {
-          type: "image",
-          width: 5787,
-          height: 7722,
-          url: "./img/wimmelbildfinal.jpg",
-          minLevel: 0,
-          maxLevel: 5,
-          buildPyramid: true
-        },
-        // UI reduziert für Touch
-        showNavigator: !IS_TOUCH,
-        navigatorPosition: "TOP_RIGHT",
-        showNavigationControl: !IS_TOUCH,
-        defaultZoomLevel: 0,
-        gestureSettingsMouse: { clickToZoom:true, dblClickToZoom:true, pinchToZoom:true, flickEnabled:true },
-        gestureSettingsTouch: { clickToZoom:true, dblClickToZoom:true, pinchToZoom:true, flickEnabled:true },
-        constrainDuringPan: true,
-        maxZoomPixelRatio: 2,
-        minZoomImageRatio: 0.5,
-        maxZoomImageRatio: 3,
-        visibilityRatio: 0.9
-      });
-
-      let HOME_Z = 1;
-      const KEEP_CONSTANT_SIZE = true; // Punkte skalieren nicht mit
-
-      viewer.addHandler('open', () => {
-        // Ausgangsansicht optimieren: Gesamtbild anzeigen, leicht heranzoomen
-        viewer.viewport.goHome(true);
-        viewer.viewport.fitVertically();
-        HOME_Z = viewer.viewport.getZoom(true);
-        setTimeout(() => {
-          // angenehmer Einstieg: etwas näher dran (10–15%)
-          viewer.viewport.zoomTo(HOME_Z * 1.12, null, true);
-          if (KEEP_CONSTANT_SIZE) updateHotspotScale();
-        }, 60);
-      });
-
-      /* ===== Vollbildsteuerung ===== */
-      const container = document.getElementById('myContainer');
-      const scrim = document.getElementById('viewerScrim');
-      const closeBtn = document.getElementById('viewerClose');
-
-      function openViewer(){
-        container.classList.add('viewer-open');
-        document.body.classList.add('viewer-mode');
-        scrim.classList.add('show'); closeBtn.classList.add('show');
-        document.body.style.overflow = 'hidden';
-        try{
-          viewer.viewport.applyConstraints();
-          viewer.forceRedraw();
-        }catch(e){}
-      }
-      function closeViewer(){
-        container.classList.remove('viewer-open');
-        document.body.classList.remove('viewer-mode');
-        scrim.classList.remove('show'); closeBtn.classList.remove('show');
-        document.body.style.overflow = '';
-      }
-
-      // Klick auf das Bild öffnet den Vollbild-Modus (nur kurzer Tipp)
-      viewer.addHandler('canvas-click', function(e){
-        if(e.quick && !container.classList.contains('viewer-open')) openViewer();
-      });
-      scrim.addEventListener('click', closeViewer);
-      closeBtn.addEventListener('click', closeViewer);
-      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeViewer(); });
-
-      /* ===== Hotspots ===== */
-      function loadHotspots(xmlFile) {
-        fetch(xmlFile)
-          .then(r => r.text())
-          .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
-          .then(xml => {
-            const hotspots = xml.getElementsByTagName("HOTSPOT");
-            for (let i = 0; i < hotspots.length; i++) {
-              const x = parseFloat(hotspots[i].getAttribute("X"));
-              const y = parseFloat(hotspots[i].getAttribute("Y"));
-              const id = hotspots[i].getAttribute("ID");
-              const popupImage = hotspots[i].getAttribute("POPUP");
-              addOverlay(x, y, id, "./Assets/button-wim.png", popupImage);
-            }
-            if (KEEP_CONSTANT_SIZE) updateHotspotScale(); // initiale Größe setzen
-          })
-          .catch(err => console.error("Error loading XML:", err));
-      }
-
-      function addOverlay(x, y, id, icon, popupImage){
-        const normalizedX = (x * (5787 / 14344)) / 5787;
-        const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
-
-        const el = document.createElement("div");
-        el.className = "hotspot-overlay";
-        el.style.backgroundImage = `url(${icon})`;
-        el.setAttribute('role','button');
-        el.setAttribute('aria-label', `Hotspot ${id}`);
-        el.setAttribute('tabindex','0');
-
-        const handler = (ev) => { ev.preventDefault(); togglePopup(id, normalizedX, normalizedY, popupImage); };
-        el.addEventListener('click', handler);
-        el.addEventListener('touchstart', handler, { passive:false });
-        el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') handler(e); });
-
-        viewer.addOverlay({
-          element: el,
-          location: new OpenSeadragon.Point(normalizedX, normalizedY),
-          placement: OpenSeadragon.OverlayPlacement.CENTER
-        });
-      }
-
-      function togglePopup(id, x, y, popupImage){
-        const nodeId = `popup-${id}`;
-        const existing = document.getElementById(nodeId);
-        if(existing){ existing.remove(); return; }
-
-        const popup = document.createElement("div");
-        popup.className = "popup";
-        popup.id = nodeId;
-        popup.innerHTML = `<img src="${popupImage}" alt="Popup ${id}">`;
-
-        viewer.addOverlay({
-          element: popup,
-          location: new OpenSeadragon.Point(x, y),
-          placement: OpenSeadragon.OverlayPlacement.BOTTOM
-        });
-
-        setTimeout(()=>document.getElementById(nodeId)?.remove(), 5000);
-      }
-
-      /* ===== Konstant große Hotspots (optional) ===== */
-      function updateHotspotScale(){
-        if (!KEEP_CONSTANT_SIZE) return;
-        const z = viewer.viewport.getZoom(true);
-        const base = HOME_Z / z;               // inverse Skalierung relativ zu "Home"
-        document.querySelectorAll('.hotspot-overlay').forEach(el => {
-          el.style.transformOrigin = 'center';
-          el.style.transform = `scale(${base})`;
-        });
-      }
-      viewer.addHandler('zoom', updateHotspotScale);
-      viewer.addHandler('animation', updateHotspotScale);
-
-      loadHotspots("./src/hotspots.xml");
-    </script>
-
-    <!-- (dein restliches Layout) -->
-    <div class="logo-container">
-      <a href="https://plan-g.at/ueber-uns" target="blank">
-        <img src="img/signet_bunt.png" class="signet" alt="plan:g Signet"/>
-      </a>
+  <!-- Header -->
+  <header class="m-header">
+    <img src="img/logo.png" alt="Plan:g – logo" class="m-header__logo" />
+    <div class="m-ctas">
+      <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" rel="noopener" class="cta">Dieses Poster</a>
+      <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" rel="noopener" class="cta">Unsere Arbeit</a>
+      <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" rel="noopener" class="cta">Informiert bleiben</a>
     </div>
+  </header>
 
-    <div class="welcome">
-      <a href="https://plan-g.at/ueber-uns" target="_blank">
-        <img src="img/logo.png" class="logo" alt="plan:g"/>
-      </a>
-      <h1 class="welcomeMessage">
-        Die Welt ist ziemlich klein,<br/>Gesundheit ziemlich komplex:<br/>Viel Spaß beim Entdecken.
-      </h1>
-      <div class="flexcta">
-        <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" class="text-link"><div class="cta">Dieses Poster</div></a>
-        <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" class="text-link"><div class="cta">Unsere Arbeit</div></a>
-        <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" class="text-link"><div class="cta">Informiert bleiben</div></a>
-      </div>
-    </div>
+  <!-- Headline -->
+  <section class="m-headline">
+    <h1>
+      Die Welt ist ziemlich klein,<br />
+      Gesundheit ziemlich komplex:<br />
+      Viel Spaß beim Entdecken.
+    </h1>
+  </section>
 
-    <div class="impressum">
-      <div class="language">
-        <div class="flag-container"><a href="https://weltgesundheit.org" class="text-link"><div class="flag de"></div></a></div>
-        <div class="flag-container"><a href="https://weltgesundheit.org/en/" class="text-link"><div class="flag en"></div></a></div>
-      </div>
-      <p>Illustration: Alice Ruzzettu</p>
-      <a href="http://plan-g.at/impressum" class="text-link" target="_blank">Impressum</a>
+  <!-- Wimmelbild als Kreis; Klick öffnet Vollbild -->
+  <section class="circle-wrap" aria-label="Interaktives Wimmelbild">
+    <div class="circle" id="circleFrame">
+      <div id="myContainer" role="application" aria-label="Wimmelbild Viewer"></div>
     </div>
-  </body>
+  </section>
+
+  <!-- Footer -->
+  <footer class="m-footer">
+    <div class="language">
+      <a href="https://weltgesundheit.org" class="text-link" aria-label="Deutsch"><div class="flag de" title="Deutsch"></div></a>
+      <a href="https://weltgesundheit.org/en/" class="text-link" aria-label="English"><div class="flag en" title="English"></div></a>
+    </div>
+    <p>Illustration: Alice Ruzzettu</p>
+    <a href="http://plan-g.at/impressum" class="text-link" target="_blank" rel="noopener">Impressum</a>
+  </footer>
+
+<script>
+  const IS_TOUCH = matchMedia('(pointer:coarse)').matches;
+  // OpenSeadragon mit angenehmer Startansicht
+  const viewer = OpenSeadragon({
+    id: 'myContainer',
+    prefixUrl: 'openseadragon/images/',
+    tileSources: {
+      type: 'image', width: 5787, height: 7722, url: './img/wimmelbildfinal.jpg',
+      minLevel: 0, maxLevel: 5, buildPyramid: true
+    },
+    showNavigator: false,
+    showNavigationControl: true,
+    autoHideControls: true,
+    blendTime: 0.12, animationTime: 0.85, springStiffness: 6.5,
+    zoomPerClick: 1.22, zoomPerScroll: 1.14,
+    visibilityRatio: 0.95, constrainDuringPan: true,
+    minZoomImageRatio: 1, maxZoomPixelRatio: 2.0,
+    maxImageCacheCount: 60, imageLoaderLimit: 2,
+    immediateRender: true, preserveImageSizeOnResize: true
+  });
+
+  let HOME_Z = 1;
+  const KEEP_CONSTANT_SIZE = true; // Punkte skalieren nicht mit
+
+  viewer.addHandler('open', () => {
+    viewer.viewport.goHome(true);
+    viewer.viewport.fitVertically();
+    HOME_Z = viewer.viewport.getZoom(true);
+    setTimeout(() => {
+      viewer.viewport.zoomTo(HOME_Z * 1.12, null, true); // angenehmes Startzoom
+      if (KEEP_CONSTANT_SIZE) updateHotspotScale();
+    }, 60);
+  });
+
+  // ===== Vollbildsteuerung =====
+  const container = document.getElementById('myContainer');
+  const circleFrame = document.getElementById('circleFrame');
+  const scrim = document.getElementById('viewerScrim');
+  const closeBtn = document.getElementById('viewerClose');
+
+  function openViewer(){
+    container.classList.add('viewer-open');
+    document.body.classList.add('viewer-mode');
+    scrim.classList.add('show');
+    closeBtn.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    try{ viewer.viewport.applyConstraints(); viewer.forceRedraw(); }catch(e){}
+  }
+  function closeViewer(){
+    container.classList.remove('viewer-open');
+    document.body.classList.remove('viewer-mode');
+    scrim.classList.remove('show');
+    closeBtn.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  // Klick/Tap auf Kreis öffnet Vollbild
+  viewer.addHandler('canvas-click', function(e){
+    if(e.quick && !container.classList.contains('viewer-open')) openViewer();
+  });
+  scrim.addEventListener('click', closeViewer);
+  closeBtn.addEventListener('click', closeViewer);
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeViewer(); });
+
+  // ===== Hotspots (aus XML) =====
+  const SOURCE_W = 5787, SOURCE_H = 7722;
+  const AUTHOR_W = 14344, AUTHOR_H = 19140;
+  const Y_EXTRA_SCALE = 1.3348;
+
+  function normalizeXY(xAuthor, yAuthor){
+    const nx = (xAuthor * (SOURCE_W / AUTHOR_W)) / SOURCE_W;
+    const ny = (yAuthor * (SOURCE_H / AUTHOR_H)) / SOURCE_H * Y_EXTRA_SCALE;
+    return { nx, ny };
+  }
+
+  // kleinere, aber tappbare Punkte (konstante Größe)
+  const BASE_SIZE = 22, MIN_SIZE = 18, MAX_SIZE = 28;
+  function updateHotspotScale(){
+    if (!KEEP_CONSTANT_SIZE) return;
+    const z = viewer.viewport.getZoom(true);
+    const size = Math.max(MIN_SIZE, Math.min(MAX_SIZE, BASE_SIZE * (HOME_Z / z)));
+    document.querySelectorAll('.hotspot-overlay').forEach(el => {
+      el.style.width = size + 'px';
+      el.style.height = size + 'px';
+      el.style.transformOrigin = 'center';
+    });
+  }
+  viewer.addHandler('zoom', updateHotspotScale);
+  viewer.addHandler('animation', updateHotspotScale);
+
+  let openPopupId = null;
+
+  function addOverlay(x, y, id, icon, popupImage){
+    const { nx, ny } = normalizeXY(x, y);
+    const overlay = document.createElement('button');
+    overlay.className = 'hotspot-overlay';
+    overlay.type = 'button';
+    overlay.style.backgroundImage = `url(${icon})`;
+    overlay.setAttribute('aria-label', 'Hotspot');
+    overlay.setAttribute('data-id', id);
+
+    overlay.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (openPopupId === id) closePopup(id);
+      else togglePopup(id, nx, ny, popupImage);
+    }, { passive:true });
+
+    viewer.addOverlay({ element: overlay, location: new OpenSeadragon.Point(nx, ny), placement: OpenSeadragon.OverlayPlacement.CENTER });
+  }
+
+  function togglePopup(id, x, y, popupImage){
+    const nodeId = `popup-${id}`;
+    const existing = document.getElementById(nodeId);
+    if(existing){ existing.remove(); openPopupId = null; return; }
+    if(!popupImage) return;
+
+    const popup = document.createElement('div');
+    popup.className = 'popup';
+    popup.id = nodeId;
+    popup.role = 'dialog';
+    popup.innerHTML = `<img src="${popupImage}" alt="Hotspot Bild">`;
+
+    viewer.addOverlay({ element: popup, location: new OpenSeadragon.Point(x, y), placement: OpenSeadragon.OverlayPlacement.BOTTOM });
+
+    openPopupId = id;
+    setTimeout(()=>document.getElementById(nodeId)?.remove(), 5000);
+  }
+
+  viewer.addHandler('canvas-click', function(){ if (openPopupId) { const id = openPopupId; openPopupId = null; const el = document.getElementById(`popup-${id}`); if(el) el.remove(); } });
+
+  function loadHotspots(xmlFile){
+    fetch(xmlFile)
+      .then(r => r.text())
+      .then(str => new window.DOMParser().parseFromString(str, 'text/xml'))
+      .then(xml => {
+        const nodes = xml.getElementsByTagName('HOTSPOT');
+        for (let i=0; i<nodes.length; i++){
+          const x = parseFloat(nodes[i].getAttribute('X'));
+          const y = parseFloat(nodes[i].getAttribute('Y'));
+          const id = nodes[i].getAttribute('ID');
+          const icon = nodes[i].getAttribute('MEDIA') || './Assets/button-wim.png';
+          const popupImage = nodes[i].getAttribute('POPUP');
+          addOverlay(x, y, id, icon, popupImage);
+        }
+        updateHotspotScale();
+      })
+      .catch(err => console.error('Error loading XML:', err));
+  }
+
+  loadHotspots('./src/hotspots.xml');
+</script>
+</body>
 </html>
