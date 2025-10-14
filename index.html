@@ -267,7 +267,8 @@
   let openPopupId = null;
   const popupTimers = new Map(); // id -> timeout
 
-  function addOverlay(x, y, id, iconUrl, popupImage, popupText, popupTitle, colorValue) {
+  // NEU: offsetX/offsetY annehmen und weitergeben
+  function addOverlay(x, y, id, iconUrl, popupImage, popupText, popupTitle, colorValue, offsetX = 0, offsetY = 0) {
     const { nx, ny } = normalizeXY(x, y);
     const overlay = document.createElement("button");
     overlay.className = "hotspot-overlay";
@@ -275,7 +276,7 @@
     overlay.setAttribute("aria-label", popupTitle || popupText || `Hotspot ${id}`);
     overlay.setAttribute("data-id", id);
 
-    // Icon hat Vorrang (Desktop-Style). Wenn kein Icon in XML -> Default-Icon aus Assets.
+    // Icon (MEDIA/ICON) – Standard: gelber Button
     const finalIcon = iconUrl || ICON_DEFAULT;
 
     if (finalIcon) {
@@ -287,15 +288,13 @@
       overlay.style.backgroundImage = "none";
     }
 
-    overlay.addEventListener("touchend", async (e) => {
-      e.stopPropagation(); e.preventDefault();
-      await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlay);
-    }, { passive: false });
-
-    overlay.addEventListener("click", async (e) => {
+    const open = async (e) => {
       e.stopPropagation();
-      await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlay);
-    }, { passive: true });
+      e.preventDefault?.();
+      await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlay, offsetX, offsetY);
+    };
+    overlay.addEventListener("touchend", open, { passive: false });
+    overlay.addEventListener("click", open, { passive: true });
 
     viewer.addOverlay({
       element: overlay,
@@ -304,13 +303,13 @@
     });
   }
 
-  async function handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlayEl){
+  async function handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlayEl, offsetX = 0, offsetY = 0){
     await ensureFullscreenIfNeeded();
     // stärker ranzoomen & zentrieren
     focusOn(nx, ny, 1.6);
 
     if (openPopupId === id) { closePopup(id); return; }
-    maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, overlayEl, true);
+    maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, overlayEl, true, offsetX, offsetY);
   }
 
   function resolvePopupSrc(name){
@@ -321,7 +320,7 @@
     return `${POPUPS_DIRS[0]}/${name}`;
   }
 
-  function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers=false){
+  function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers=false, offsetX=0, offsetY=0){
     if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
     if (document.getElementById(`popup-${id}`)) return;
 
@@ -345,6 +344,11 @@
         </div>` : ``}
     `;
     popup.addEventListener('click', e => e.stopPropagation());
+
+    // Offsets aus XML (in CSS-Pixeln) anwenden
+    if (offsetX || offsetY) {
+      popup.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+    }
 
     viewer.addOverlay({
       element: popup,
@@ -383,18 +387,20 @@
           const y = parseFloat(node.getAttribute("Y"));
           const id = node.getAttribute("ID");
 
+          // WICHTIG: Bei dir heißt das Icon-Attribut häufig "MEDIA"
           const iconUrl =
-                node.getAttribute("ICON") ||
-                node.getAttribute("ICONURL") ||
+                node.getAttribute("ICON")     ||
+                node.getAttribute("ICONURL")  ||
                 node.getAttribute("ICON_URL") ||
-                node.getAttribute("MARKER") ||
+                node.getAttribute("MARKER")   ||
+                node.getAttribute("MEDIA")    ||
                 ""; // leer => wir setzen später ICON_DEFAULT
 
           const popupImage =
                 node.getAttribute("POPUP") ||
                 node.getAttribute("POPUPIMG") ||
                 node.getAttribute("IMAGE") ||
-                ""; // Dateiname wie "popup-01.png"
+                ""; // Dateiname / Pfad
 
           const popupText  =
                 node.getAttribute("TEXT")   ||
@@ -417,7 +423,11 @@
                 node.getAttribute("DOTCOLOR")||
                 null;
 
-          addOverlay(x, y, id, iconUrl || ICON_DEFAULT, popupImage, popupText, popupTitle, colorValue);
+          // Popup-Versatz aus XML
+          const offsetX = parseInt(node.getAttribute("POPOFFSETX") || "0", 10);
+          const offsetY = parseInt(node.getAttribute("POPOFFSETY") || "0", 10);
+
+          addOverlay(x, y, id, iconUrl || ICON_DEFAULT, popupImage, popupText, popupTitle, colorValue, offsetX, offsetY);
         }
         applyHotspotScale();
       })
