@@ -46,7 +46,7 @@
     padding: 18px var(--pad) 6px;
     display: grid; place-items: center;
   }
-  /* runder Ausschnitt, responsiv quadratisch (nur im Normalmodus) */
+  /* Normalmodus: runder Ausschnitt */
   .circle{
     width: min(86vw, 520px);
     aspect-ratio: 1 / 1;
@@ -57,7 +57,7 @@
     position: relative;
     box-shadow: 0 8px 28px rgba(0,0,0,.18);
   }
-  /* im Vollbild rechteckig & frei */
+  /* Vollbild: rechteckig & frei */
   .circle.is-fullscreen{
     clip-path: none;
     border-radius: 0;
@@ -79,27 +79,28 @@
     background-size: contain;
     background-repeat:no-repeat;
     background-color: transparent;
-    border: 1px solid rgba(255,255,255,.8);
+    border: 1px solid rgba(255,255,255,1);
     border-radius: 999px;
     box-shadow: 0 1px 4px rgba(0,0,0,.35);
     cursor: pointer;
     touch-action: manipulation;
-    opacity: .6;
+    opacity: 1; /* nicht durchsichtig */
   }
-  /* dezenter im Vollbild */
   .circle.is-fullscreen .hotspot-overlay{
-    opacity:.8; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3);
+    opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3);
   }
 
   /* ========= Popup ========= */
   .popup{
     background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.25);
-    overflow:hidden; max-width:min(82vw, 420px);
+    overflow:hidden; max-width:min(82vw, 440px);
   }
   .popup img{ display:block; width:100%; height:auto; }
-  .popup .close{ display:none; } /* mobil: Schließen via Tap außerhalb oder X oben rechts */
+  .popup .content{ padding:12px 14px; }
+  .popup .title{ margin:0 0 6px; font-weight:700; font-size:16px; line-height:1.25; }
+  .popup .text{ margin:0; font-size:14px; line-height:1.4; }
 
-  /* ========= Vollbild-Buttons ========= */
+  /* ========= Vollbild-Schließen ========= */
   .fs-exit{
     position:absolute; top:10px; right:10px;
     z-index:10; display:none; width:38px; height:38px;
@@ -146,7 +147,7 @@
     </h1>
   </section>
 
-  <!-- Wimmelbild als Kreis -->
+  <!-- Wimmelbild -->
   <section class="circle-wrap" aria-label="Interaktives Wimmelbild">
     <div class="circle">
       <button id="exitFsBtn" class="fs-exit" type="button" aria-label="Vollbild schließen" title="Schließen">×</button>
@@ -206,14 +207,13 @@
   const SOURCE_W = 5787, SOURCE_H = 7722;
   const AUTHOR_W = 14344, AUTHOR_H = 19140;
   const Y_EXTRA_SCALE = 1.3348;
-
   function normalizeXY(xAuthor, yAuthor) {
     const nx = (xAuthor * (SOURCE_W / AUTHOR_W)) / SOURCE_W;
     const ny = (yAuthor * (SOURCE_H / AUTHOR_H)) / SOURCE_H * Y_EXTRA_SCALE;
     return { nx, ny };
   }
 
-  // --- Hotspots Größe/Skalierung (dezenter im Vollbild) ---
+  // --- Hotspots Größe/Skalierung ---
   let BASE_SIZE = 20, MIN_SIZE = 14, MAX_SIZE = 26;
   function applyHotspotScale(){
     const z = viewer.viewport.getZoom(true);
@@ -256,7 +256,7 @@
 
   exitBtn.addEventListener('click', (e)=>{ e.stopPropagation(); exitFullscreen(); });
 
-  // Tap ins Bild => Vollbild starten
+  // 1) Tippen ins Bild => automatisch Vollbild
   viewer.addHandler("canvas-click", async function(){
     if (document.fullscreenElement !== circleEl){
       await ensureFullscreenIfNeeded();
@@ -266,7 +266,7 @@
   });
 
   // --- Hotspots (aus XML) ---
-  function addOverlay(x, y, id, icon, popupImage) {
+  function addOverlay(x, y, id, icon, popupImage, popupText, popupTitle) {
     const { nx, ny } = normalizeXY(x, y);
     const overlay = document.createElement("button");
     overlay.className = "hotspot-overlay";
@@ -277,10 +277,14 @@
 
     overlay.addEventListener("click", async (e) => {
       e.stopPropagation();
-      await ensureFullscreenIfNeeded();    // 1) erst in Vollbild
-      focusOn(nx, ny, 1.25);               // 2) leicht ranzoomen & zentrieren
-      if (openPopupId === id) closePopup(id);
-      else maybeOpenPopup(id, nx, ny, popupImage, true);
+      // 2) Erst in Vollbild, dann leicht ranzoomen & Schild/Text anzeigen
+      await ensureFullscreenIfNeeded();
+      focusOn(nx, ny, 1.25);
+      if (openPopupId === id) {
+        closePopup(id);
+      } else {
+        maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, true);
+      }
     }, { passive: true });
 
     viewer.addOverlay({
@@ -290,16 +294,28 @@
     });
   }
 
-  function maybeOpenPopup(id, x, y, popupImage, closeOthers=false){
-    if (!popupImage) return;
+  function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, closeOthers=false){
     if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
     if (document.getElementById(`popup-${id}`)) return;
+
+    const safeTitle = popupTitle || popupText ? (popupTitle || "") : `Hotspot ${id}`;
+    const safeText  = popupText || "";
 
     const popup = document.createElement("div");
     popup.className = "popup";
     popup.id = `popup-${id}`;
     popup.role = "dialog";
-    popup.innerHTML = `<img src="${popupImage}" alt="Hotspot Bild" />`;
+    popup.innerHTML = `
+      ${popupImage ? `<img src="${popupImage}" alt="${safeTitle ? safeTitle : 'Hotspot Bild'}" />` : ``}
+      ${(safeTitle || safeText) ? `
+        <div class="content">
+          ${safeTitle ? `<h3 class="title">${safeTitle}</h3>` : ``}
+          ${safeText ? `<p class="text">${safeText}</p>` : ``}
+        </div>` : ``}
+    `;
+
+    // Nicht schließen beim Klick in den Inhalt
+    popup.addEventListener('click', e => e.stopPropagation());
 
     viewer.addOverlay({
       element: popup,
@@ -329,7 +345,11 @@
           const id = nodes[i].getAttribute("ID");
           const icon = nodes[i].getAttribute("MEDIA") || "./Assets/button-wim.png";
           const popupImage = nodes[i].getAttribute("POPUP");
-          addOverlay(x, y, id, icon, popupImage);
+          // Neu: auch Text/Titel lesen, falls vorhanden
+          const popupText  = nodes[i].getAttribute("TEXT")  || nodes[i].getAttribute("DESC") || "";
+          const popupTitle = nodes[i].getAttribute("TITLE") || nodes[i].getAttribute("LABEL") || "";
+
+          addOverlay(x, y, id, icon, popupImage, popupText, popupTitle);
         }
         applyHotspotScale();
       })
