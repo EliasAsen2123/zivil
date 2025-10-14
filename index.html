@@ -34,7 +34,6 @@
     box-shadow:0 2px 8px rgba(0,0,0,.12);
   }
   .cta:active{ transform: scale(.98); }
-
   .m-ctas{ margin-top: 12px; display:grid; gap:10px; max-width: 360px; }
 
   /* ========= Headline ========= */
@@ -46,7 +45,6 @@
     padding: 18px var(--pad) 6px;
     display: grid; place-items: center;
   }
-  /* Normalmodus: runder Ausschnitt */
   .circle{
     width: min(86vw, 520px);
     aspect-ratio: 1 / 1;
@@ -71,20 +69,21 @@
     position: absolute; inset: 0;
     width: 100%; height: 100%;
     background: transparent;
+    touch-action: manipulation; /* bessere Touch-Reaktion */
   }
 
-  /* ========= Hotspots ========= */
+  /* ========= Hotspots: weiß wie Desktop ========= */
   .hotspot-overlay{
     width: 22px; height: 22px;
+    background: #fff;                 /* SOLID WEISS */
     background-size: contain;
     background-repeat:no-repeat;
-    background-color: transparent;
-    border: 1px solid rgba(255,255,255,1);
+    border: 1px solid rgba(0,0,0,.25); /* feine Kontur */
     border-radius: 999px;
     box-shadow: 0 1px 4px rgba(0,0,0,.35);
     cursor: pointer;
     touch-action: manipulation;
-    opacity: 1; /* nicht durchsichtig */
+    opacity: 1;                       /* NICHT durchsichtig */
   }
   .circle.is-fullscreen .hotspot-overlay{
     opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3);
@@ -256,35 +255,43 @@
 
   exitBtn.addEventListener('click', (e)=>{ e.stopPropagation(); exitFullscreen(); });
 
-  // 1) Tippen ins Bild => automatisch Vollbild
-  viewer.addHandler("canvas-click", async function(){
+  // ==== 1) Handy-Tap → automatisch Vollbild ====
+  const containerEl = document.getElementById('myContainer');
+  containerEl.addEventListener('touchend', async (e)=>{
+    // nur einfacher Tap (keine Mehrfinger-Geste)
+    if (e.touches && e.touches.length === 0 && document.fullscreenElement !== circleEl){
+      e.preventDefault();
+      await ensureFullscreenIfNeeded();
+    }
+  }, { passive: false });
+
+  // Fallback: auch Klick (z.B. Mobile Browser simuliert Click nach Touch)
+  containerEl.addEventListener('click', async ()=>{
     if (document.fullscreenElement !== circleEl){
       await ensureFullscreenIfNeeded();
-      return;
     }
-    if (openPopupId) closePopup(openPopupId);
   });
 
   // --- Hotspots (aus XML) ---
-  function addOverlay(x, y, id, icon, popupImage, popupText, popupTitle) {
+  function addOverlay(x, y, id, _iconIgnored, popupImage, popupText, popupTitle) {
     const { nx, ny } = normalizeXY(x, y);
     const overlay = document.createElement("button");
     overlay.className = "hotspot-overlay";
     overlay.type = "button";
-    overlay.style.backgroundImage = `url(${icon})`;
+    // Wichtig: weiße Punkte ohne Icon-Bild (wie Desktop)
+    overlay.style.backgroundImage = "none";
     overlay.setAttribute("aria-label", "Hotspot");
     overlay.setAttribute("data-id", id);
 
+    overlay.addEventListener("touchend", async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle);
+    }, { passive: false });
+
     overlay.addEventListener("click", async (e) => {
       e.stopPropagation();
-      // 2) Erst in Vollbild, dann leicht ranzoomen & Schild/Text anzeigen
-      await ensureFullscreenIfNeeded();
-      focusOn(nx, ny, 1.25);
-      if (openPopupId === id) {
-        closePopup(id);
-      } else {
-        maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, true);
-      }
+      await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle);
     }, { passive: true });
 
     viewer.addOverlay({
@@ -292,6 +299,19 @@
       location: new OpenSeadragon.Point(nx, ny),
       placement: OpenSeadragon.OverlayPlacement.CENTER
     });
+  }
+
+  async function handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle){
+    // 1) Erst sicher ins Vollbild (für Handy)
+    await ensureFullscreenIfNeeded();
+    // 2) Leicht reinzoomen + zentrieren
+    focusOn(nx, ny, 1.2);
+    // 3) Text/Popup toggeln
+    if (openPopupId === id) {
+      closePopup(id);
+    } else {
+      maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, true);
+    }
   }
 
   function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, closeOthers=false){
@@ -313,8 +333,6 @@
           ${safeText ? `<p class="text">${safeText}</p>` : ``}
         </div>` : ``}
     `;
-
-    // Nicht schließen beim Klick in den Inhalt
     popup.addEventListener('click', e => e.stopPropagation());
 
     viewer.addOverlay({
@@ -343,13 +361,12 @@
           const x = parseFloat(nodes[i].getAttribute("X"));
           const y = parseFloat(nodes[i].getAttribute("Y"));
           const id = nodes[i].getAttribute("ID");
-          const icon = nodes[i].getAttribute("MEDIA") || "./Assets/button-wim.png";
+          // Icon wird ignoriert, da weiße Punkte gewünscht sind:
+          // const icon = nodes[i].getAttribute("MEDIA") || "./Assets/button-wim.png";
           const popupImage = nodes[i].getAttribute("POPUP");
-          // Neu: auch Text/Titel lesen, falls vorhanden
           const popupText  = nodes[i].getAttribute("TEXT")  || nodes[i].getAttribute("DESC") || "";
           const popupTitle = nodes[i].getAttribute("TITLE") || nodes[i].getAttribute("LABEL") || "";
-
-          addOverlay(x, y, id, icon, popupImage, popupText, popupTitle);
+          addOverlay(x, y, id, null, popupImage, popupText, popupTitle);
         }
         applyHotspotScale();
       })
@@ -357,12 +374,11 @@
   }
   loadHotspots("./src/hotspots.xml");
 
-  // ===== Helper: Fokus auf Punkt & Fullscreen Promise =====
+  // ===== Helper =====
   function focusOn(nx, ny, zoomFactor=1.2){
     const ref = new OpenSeadragon.Point(nx, ny);
-    const current = viewer.viewport.getZoom(true);
     viewer.viewport.panTo(ref, true);
-    viewer.viewport.zoomTo(current * zoomFactor, ref, true);
+    viewer.viewport.zoomBy(zoomFactor, ref, true);
   }
   function ensureFullscreenIfNeeded(){
     if (document.fullscreenElement === circleEl) return Promise.resolve();
