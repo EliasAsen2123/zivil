@@ -55,7 +55,7 @@
     position: relative;
     box-shadow: 0 8px 28px rgba(0,0,0,.18);
   }
-  /* Vollbild: rechteckig & frei */
+  /* Vollbild (echtes API) */
   .circle.is-fullscreen{
     clip-path: none;
     border-radius: 0;
@@ -63,13 +63,25 @@
     height: 100vh;
     background: #000;
   }
+  /* Pseudo-Vollbild (Fallback wenn Fullscreen API fehlt) */
+  .pseudo-fs .circle{
+    clip-path: none !important;
+    border-radius: 0 !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #000 !important;
+    z-index: 998 !important;
+  }
 
-  /* OpenSeadragon füllt den Container */
+  /* OpenSeadragon Container (unter das X legen) */
   #myContainer{
     position: absolute; inset: 0;
     width: 100%; height: 100%;
     background: transparent;
-    touch-action: manipulation; /* bessere Touch-Reaktion */
+    touch-action: manipulation;
+    z-index: 1; /* X-Button darüber */
   }
 
   /* ========= Hotspots: weiß wie Desktop ========= */
@@ -78,14 +90,16 @@
     background: #fff;                 /* SOLID WEISS */
     background-size: contain;
     background-repeat:no-repeat;
-    border: 1px solid rgba(0,0,0,.25); /* feine Kontur */
+    border: 1px solid rgba(0,0,0,.25);
     border-radius: 999px;
     box-shadow: 0 1px 4px rgba(0,0,0,.35);
     cursor: pointer;
     touch-action: manipulation;
-    opacity: 1;                       /* NICHT durchsichtig */
+    opacity: 1;
+    z-index: 2;
   }
-  .circle.is-fullscreen .hotspot-overlay{
+  .circle.is-fullscreen .hotspot-overlay,
+  .pseudo-fs .hotspot-overlay{
     opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3);
   }
 
@@ -93,24 +107,27 @@
   .popup{
     background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.25);
     overflow:hidden; max-width:min(82vw, 440px);
+    z-index: 3;
   }
   .popup img{ display:block; width:100%; height:auto; }
   .popup .content{ padding:12px 14px; }
   .popup .title{ margin:0 0 6px; font-weight:700; font-size:16px; line-height:1.25; }
   .popup .text{ margin:0; font-size:14px; line-height:1.4; }
 
-  /* ========= Vollbild-Schließen ========= */
+  /* ========= Vollbild-Schließen (X) ========= */
   .fs-exit{
     position:absolute; top:10px; right:10px;
-    z-index:10; display:none; width:38px; height:38px;
+    z-index: 999; display:none; width:42px; height:42px;
     border-radius:999px; border:0; background:#111; color:#fff;
     font-size:22px; line-height:1;
     align-items:center; justify-content:center;
     box-shadow:0 4px 14px rgba(0,0,0,.25);
-    cursor:pointer; opacity:.92;
+    cursor:pointer; opacity:.96;
+    pointer-events: auto;
   }
   .fs-exit:active{ transform:scale(.98); }
   .circle.is-fullscreen .fs-exit{ display:inline-flex; }
+  .pseudo-fs .fs-exit{ display:inline-flex !important; position: fixed; top: 12px; right: 12px; }
 
   /* ========= Footer ========= */
   .m-footer{
@@ -148,7 +165,7 @@
 
   <!-- Wimmelbild -->
   <section class="circle-wrap" aria-label="Interaktives Wimmelbild">
-    <div class="circle">
+    <div class="circle" id="circle">
       <button id="exitFsBtn" class="fs-exit" type="button" aria-label="Vollbild schließen" title="Schließen">×</button>
       <div id="myContainer" role="application" aria-label="Wimmelbild Viewer"></div>
     </div>
@@ -216,8 +233,9 @@
   let BASE_SIZE = 20, MIN_SIZE = 14, MAX_SIZE = 26;
   function applyHotspotScale(){
     const z = viewer.viewport.getZoom(true);
-    const circleEl = document.querySelector('.circle');
-    const fs = document.fullscreenElement === circleEl ? 0.92 : 1.0;
+    const circleEl = document.getElementById('circle');
+    const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
+    const fs = isFs ? 0.92 : 1.0;
     const size = Math.max(MIN_SIZE, Math.min(MAX_SIZE, BASE_SIZE * fs * (0.9 + (z-1)*0.12)));
     document.querySelectorAll('.hotspot-overlay').forEach(el => {
       el.style.width  = `${size}px`;
@@ -230,18 +248,47 @@
 
   let openPopupId = null;
 
-  // --- Vollbild-Logik ---
-  const circleEl = document.querySelector('.circle');
+  // --- Vollbild-Logik + Fallback ---
+  const circleEl = document.getElementById('circle');
   const exitBtn  = document.getElementById('exitFsBtn');
 
-  function enterFullscreen(){ if (circleEl.requestFullscreen) return circleEl.requestFullscreen(); }
-  function exitFullscreen(){ if (document.fullscreenElement) return document.exitFullscreen(); }
+  function supportsFullscreen(){
+    return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen);
+  }
+  function enterFullscreen(){
+    if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
+    if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
+    if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen();
+  }
+  function exitFullscreen(){
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    if (document.msExitFullscreen) return document.msExitFullscreen();
+  }
 
+  function setFullscreenClasses(isFs){
+    circleEl.classList.toggle('is-fullscreen', isFs);
+    if (!supportsFullscreen()){
+      document.body.classList.toggle('pseudo-fs', isFs);
+    }
+  }
+
+  // Echte Fullscreen-Events
   document.addEventListener('fullscreenchange', () => {
     const isFs = document.fullscreenElement === circleEl;
-    circleEl.classList.toggle('is-fullscreen', isFs);
-    // Grenzen im Vollbild freier, im Normalmodus restriktiver
-    if (isFs){
+    setFullscreenClasses(isFs);
+    updatePanBounds(isFs);
+    applyHotspotScale();
+  });
+  document.addEventListener('webkitfullscreenchange', () => {
+    const isFs = document.webkitFullscreenElement === circleEl;
+    setFullscreenClasses(isFs);
+    updatePanBounds(isFs);
+    applyHotspotScale();
+  });
+
+  function updatePanBounds(isFs){
+    if (isFs || document.body.classList.contains('pseudo-fs')){
       viewer.constrainDuringPan = false;
       viewer.viewport.setVisibilityRatio(0.2);
       viewer.minZoomImageRatio = 0.8;
@@ -250,24 +297,38 @@
       viewer.viewport.setVisibilityRatio(0.95);
       viewer.minZoomImageRatio = 1;
     }
-    applyHotspotScale();
+  }
+
+  exitBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    if (supportsFullscreen()){
+      exitFullscreen();
+    } else {
+      // Pseudo-FS verlassen
+      setFullscreenClasses(false);
+      updatePanBounds(false);
+    }
   });
 
-  exitBtn.addEventListener('click', (e)=>{ e.stopPropagation(); exitFullscreen(); });
-
-  // ==== 1) Handy-Tap → automatisch Vollbild ====
+  // ==== Touch/Klick → automatisch Vollbild ====
   const containerEl = document.getElementById('myContainer');
+
+  // Handy: Touch
   containerEl.addEventListener('touchend', async (e)=>{
-    // nur einfacher Tap (keine Mehrfinger-Geste)
-    if (e.touches && e.touches.length === 0 && document.fullscreenElement !== circleEl){
-      e.preventDefault();
-      await ensureFullscreenIfNeeded();
+    // nur einfacher Tap
+    if (e.touches && e.touches.length === 0){
+      const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
+      if (!alreadyFs){
+        e.preventDefault();
+        await ensureFullscreenIfNeeded();
+      }
     }
   }, { passive: false });
 
-  // Fallback: auch Klick (z.B. Mobile Browser simuliert Click nach Touch)
+  // Fallback: Klick (einige Browser feuern Click nach Touch)
   containerEl.addEventListener('click', async ()=>{
-    if (document.fullscreenElement !== circleEl){
+    const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
+    if (!alreadyFs){
       await ensureFullscreenIfNeeded();
     }
   });
@@ -278,8 +339,7 @@
     const overlay = document.createElement("button");
     overlay.className = "hotspot-overlay";
     overlay.type = "button";
-    // Wichtig: weiße Punkte ohne Icon-Bild (wie Desktop)
-    overlay.style.backgroundImage = "none";
+    overlay.style.backgroundImage = "none"; // weiße Punkte wie Desktop
     overlay.setAttribute("aria-label", "Hotspot");
     overlay.setAttribute("data-id", id);
 
@@ -302,11 +362,8 @@
   }
 
   async function handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle){
-    // 1) Erst sicher ins Vollbild (für Handy)
-    await ensureFullscreenIfNeeded();
-    // 2) Leicht reinzoomen + zentrieren
-    focusOn(nx, ny, 1.2);
-    // 3) Text/Popup toggeln
+    await ensureFullscreenIfNeeded();     // Handy: erst Vollbild
+    focusOn(nx, ny, 1.2);                 // leicht reinzoomen
     if (openPopupId === id) {
       closePopup(id);
     } else {
@@ -361,8 +418,6 @@
           const x = parseFloat(nodes[i].getAttribute("X"));
           const y = parseFloat(nodes[i].getAttribute("Y"));
           const id = nodes[i].getAttribute("ID");
-          // Icon wird ignoriert, da weiße Punkte gewünscht sind:
-          // const icon = nodes[i].getAttribute("MEDIA") || "./Assets/button-wim.png";
           const popupImage = nodes[i].getAttribute("POPUP");
           const popupText  = nodes[i].getAttribute("TEXT")  || nodes[i].getAttribute("DESC") || "";
           const popupTitle = nodes[i].getAttribute("TITLE") || nodes[i].getAttribute("LABEL") || "";
@@ -380,12 +435,24 @@
     viewer.viewport.panTo(ref, true);
     viewer.viewport.zoomBy(zoomFactor, ref, true);
   }
+
   function ensureFullscreenIfNeeded(){
-    if (document.fullscreenElement === circleEl) return Promise.resolve();
+    const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
+    if (alreadyFs) return Promise.resolve();
+
+    // echter Fullscreen
+    if (supportsFullscreen()){
+      return new Promise((resolve)=>{
+        const onChange = ()=>{ document.removeEventListener('fullscreenchange', onChange); resolve(); };
+        document.addEventListener('fullscreenchange', onChange);
+        enterFullscreen();
+      });
+    }
+    // Fallback: Pseudo-Fullscreen
     return new Promise((resolve)=>{
-      const onChange = ()=>{ document.removeEventListener('fullscreenchange', onChange); resolve(); };
-      document.addEventListener('fullscreenchange', onChange);
-      enterFullscreen();
+      setFullscreenClasses(true);
+      updatePanBounds(true);
+      resolve();
     });
   }
 </script>
