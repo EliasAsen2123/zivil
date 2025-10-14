@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<html xml:lang="DE" xmlns="http://www.w3.org/1999/xhtml" lang="de">
   <head>
-    <title>Wimmelbild - Plan:g</title>
+    <title>Wimmelbild - Plan:g (verbessert)</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link rel="icon" type="image/png" href="favicon.png" />
 
@@ -11,9 +11,6 @@
     <script src="detect-browser.js"></script>
     <script>
       const info = (typeof getBrowser === "function" && getBrowser()) || {};
-      // if (["Microsoft Edge","Safari","Internet Explorer"].includes(info.browser)) {
-      //   window.location = "index_ie.html";
-      // }
       const IS_TOUCH = matchMedia("(pointer:coarse)").matches;
     </script>
 
@@ -25,7 +22,7 @@
 
       .logo-container{
         position:absolute;z-index:1000;top:25px;left:25px;
-        opacity:0;display:none;transition:opacity .3s;
+        opacity:1;display:block;transition:opacity .3s;
       }
       .logo{width:250px;padding-bottom:30px}
       .signet{width:100px}
@@ -35,7 +32,7 @@
         position:absolute; width:100%; height:100vh; left:10vw;
         background:#769b60; z-index:500; overflow:hidden;
         clip-path:circle(20vw at center); -webkit-clip-path:circle(20vw at center);
-        transition:clip-path .5s,left .5s;
+        transition:clip-path .5s,left .5s, border-radius .5s;
       }
 
       /* Vollbildzustand per Klasse */
@@ -45,9 +42,24 @@
         z-index:1200;
       }
 
+      /* Wenn der Viewer offen ist: restliches UI ausblenden für bessere Sicht */
+      body.viewer-mode .welcome,
+      body.viewer-mode .impressum,
+      body.viewer-mode .logo-container{ display:none !important; }
+
       .viewer-scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:1190}
       .viewer-scrim.show{opacity:1;pointer-events:auto}
-      .viewer-close{position:fixed;top:12px;right:12px;z-index:1300;width:40px;height:40px;border:0;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:22px;line-height:40px;text-align:center;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .2s}
+
+      /* Deutlich sichtbares X oben rechts nur im Vollbild */
+      .viewer-close{
+        position:fixed;top:14px;right:14px;z-index:1300;width:48px;height:48px;
+        border:0;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;
+        font-size:26px;line-height:48px;text-align:center;cursor:pointer;
+        opacity:0;pointer-events:none;transition:opacity .2s, transform .15s ease;
+        backdrop-filter:saturate(120%) blur(2px);
+      }
+      .viewer-close:hover{transform:scale(1.04)}
+      .viewer-close:active{transform:scale(0.98)}
       .viewer-close.show{opacity:1;pointer-events:auto}
 
       .welcome{position:absolute;z-index:250;top:51px;left:22px;width:70%}
@@ -63,14 +75,13 @@
       .flag.en{background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg")}
       .flag.de{background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg")}
 
-      /* 🔴 Hotspots – jetzt größer */
+      /* 🔴 Hotspots – etwas kleiner */
       .hotspot-overlay{
-        width:26px;         /* vorher 14px */
-        height:26px;
+        width:18px;         /* vorher 26px */
+        height:18px;
         border-radius:50%;
         background-size:cover;background-repeat:no-repeat;
         box-shadow:0 2px 4px rgba(0,0,0,.3);
-        /* transform wird dynamisch gesetzt, wenn KEEP_CONSTANT_SIZE = true */
         will-change: transform;
       }
 
@@ -87,9 +98,9 @@
   <body>
     <!-- Scrim & Close für Vollbild -->
     <div id="viewerScrim" class="viewer-scrim" aria-hidden="true"></div>
-    <button id="viewerClose" class="viewer-close" aria-label="Schließen">✕</button>
+    <button id="viewerClose" class="viewer-close" aria-label="Schließen" title="Schließen (Esc)">✕</button>
 
-    <div id="myContainer"></div>
+    <div id="myContainer" aria-label="Wimmelbild-Viewer" role="application"></div>
 
     <script>
       /* ===== OpenSeadragon ===== */
@@ -120,32 +131,43 @@
       });
 
       let HOME_Z = 1;
-      const KEEP_CONSTANT_SIZE = true; // ⇐ auf false setzen, wenn Punkte mitzoomen sollen
+      const KEEP_CONSTANT_SIZE = true; // Punkte skalieren nicht mit
 
       viewer.addHandler('open', () => {
+        // Ausgangsansicht optimieren: Gesamtbild anzeigen, leicht heranzoomen
+        viewer.viewport.goHome(true);
         viewer.viewport.fitVertically();
-        HOME_Z = viewer.viewport.getZoom(true); // Referenzzoom (Home)
-        setTimeout(() => viewer.viewport.zoomBy(1.04), 50);
-        if (KEEP_CONSTANT_SIZE) updateHotspotScale();
+        HOME_Z = viewer.viewport.getZoom(true);
+        setTimeout(() => {
+          // angenehmer Einstieg: etwas näher dran (10–15%)
+          viewer.viewport.zoomTo(HOME_Z * 1.12, null, true);
+          if (KEEP_CONSTANT_SIZE) updateHotspotScale();
+        }, 60);
       });
 
-      /* ===== Vollbildsteuerung (nur kurzer Tipp) ===== */
+      /* ===== Vollbildsteuerung ===== */
       const container = document.getElementById('myContainer');
       const scrim = document.getElementById('viewerScrim');
       const closeBtn = document.getElementById('viewerClose');
 
       function openViewer(){
         container.classList.add('viewer-open');
+        document.body.classList.add('viewer-mode');
         scrim.classList.add('show'); closeBtn.classList.add('show');
         document.body.style.overflow = 'hidden';
-        try{ viewer.viewport.applyConstraints(); viewer.forceRedraw(); }catch(e){}
+        try{
+          viewer.viewport.applyConstraints();
+          viewer.forceRedraw();
+        }catch(e){}
       }
       function closeViewer(){
         container.classList.remove('viewer-open');
+        document.body.classList.remove('viewer-mode');
         scrim.classList.remove('show'); closeBtn.classList.remove('show');
         document.body.style.overflow = '';
       }
 
+      // Klick auf das Bild öffnet den Vollbild-Modus (nur kurzer Tipp)
       viewer.addHandler('canvas-click', function(e){
         if(e.quick && !container.classList.contains('viewer-open')) openViewer();
       });
@@ -179,13 +201,15 @@
         const el = document.createElement("div");
         el.className = "hotspot-overlay";
         el.style.backgroundImage = `url(${icon})`;
+        el.setAttribute('role','button');
+        el.setAttribute('aria-label', `Hotspot ${id}`);
+        el.setAttribute('tabindex','0');
 
-        // Click & Touch
         const handler = (ev) => { ev.preventDefault(); togglePopup(id, normalizedX, normalizedY, popupImage); };
         el.addEventListener('click', handler);
         el.addEventListener('touchstart', handler, { passive:false });
+        el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') handler(e); });
 
-        // zum Viewer hinzufügen (zentriert auf Koordinate)
         viewer.addOverlay({
           element: el,
           location: new OpenSeadragon.Point(normalizedX, normalizedY),
@@ -218,7 +242,6 @@
         const z = viewer.viewport.getZoom(true);
         const base = HOME_Z / z;               // inverse Skalierung relativ zu "Home"
         document.querySelectorAll('.hotspot-overlay').forEach(el => {
-          // placement:CENTER sorgt bereits für Zentrierung – daher NUR scale
           el.style.transformOrigin = 'center';
           el.style.transform = `scale(${base})`;
         });
