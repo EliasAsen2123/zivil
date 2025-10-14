@@ -51,7 +51,7 @@
 
   #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
-  /* ====== Hotspots (wie Desktop) ====== */
+  /* ====== Hotspots ====== */
   .hotspot-overlay{
     width: 24px; height: 24px;
     background: var(--hotspot-color);
@@ -176,14 +176,25 @@
     return { nx, ny };
   }
 
-  // --- Hotspots skalieren ---
-  let BASE_SIZE = 22, MIN_SIZE = 16, MAX_SIZE = 30;
+  // --- Responsive Hotspot-Größen ---
+  function getHotspotSizeParams(){
+    // Phones / kleine Screens
+    if (window.matchMedia('(max-width: 640px)').matches) {
+      return { BASE: 16, MIN: 12, MAX: 20 };
+    }
+    // Tablet/Desk
+    return { BASE: 22, MIN: 16, MAX: 30 };
+  }
+
   function applyHotspotScale(){
+    const { BASE, MIN, MAX } = getHotspotSizeParams();
     const z = viewer.viewport.getZoom(true);
     const circleEl = document.getElementById('circle');
     const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
     const fs = isFs ? 0.98 : 1.0;
-    const size = Math.max(MIN_SIZE, Math.min(MAX_SIZE, BASE_SIZE * fs * (0.92 + (z-1)*0.14)));
+
+    // etwas konservativer skalieren, damit es mobil klein bleibt
+    const size = Math.max(MIN, Math.min(MAX, BASE * fs * (0.90 + (z-1)*0.12)));
     document.querySelectorAll('.hotspot-overlay').forEach(el => {
       el.style.width  = `${size}px`;
       el.style.height = `${size}px`;
@@ -310,7 +321,7 @@
     return `${POPUPS_DIRS[0]}/${name}`;
   }
 
-  // >>> Nur Bild rendern – kein Text/Title-Block <<<
+  // Nur Bild rendern – kein Text/Title-Block
   function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers=false, offsetX=0, offsetY=0){
     if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
     if (document.getElementById(`popup-${id}`)) return;
@@ -323,7 +334,7 @@
     popup.className = "popup";
     popup.id = `popup-${id}`;
     popup.role = "dialog";
-    popup.innerHTML = `${imgSrc ? `<img src="${imgSrc}" alt="" />` : ``}`; // alt="" damit Screenreader nicht doppeln
+    popup.innerHTML = `${imgSrc ? `<img src="${imgSrc}" alt="" />` : ``}`;
     popup.addEventListener('click', e => e.stopPropagation());
 
     if (offsetX || offsetY) {
@@ -381,9 +392,8 @@
                 node.getAttribute("IMAGE")    ||
                 "";
 
-          // (Text/Titel werden bewusst ignoriert, damit nur Bilder erscheinen)
-          const popupText  = "";
-          const popupTitle = "";
+          const popupText  = "";   // bewusst leer: nur Bild
+          const popupTitle = "";   // bewusst leer: nur Bild
 
           const colorValue =
                 node.getAttribute("COLOR")    ||
@@ -427,6 +437,9 @@
       resolve();
     });
   }
+
+  // bei Orientation-/Viewport-Wechsel neu skalieren
+  window.addEventListener('orientationchange', () => setTimeout(applyHotspotScale, 50));
 </script>
 </body>
 </html>
