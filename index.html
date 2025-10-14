@@ -62,23 +62,18 @@
     cursor:pointer; touch-action:manipulation; opacity:1; z-index:2;
     transition:opacity .15s ease;
   }
-  /* Wenn Icon genutzt wird, keine runde Blase, sondern das Bild pur */
   .hotspot-overlay.has-icon{ background-color:transparent; border:0; box-shadow:none; }
-  /* Punkt ausblenden, solange Popup offen ist */
   .hotspot-overlay.is-hidden{ opacity:0; pointer-events:none; }
 
   .circle.is-fullscreen .hotspot-overlay,
   .pseudo-fs .hotspot-overlay{ opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3); }
 
-  /* ====== Popup ====== */
+  /* ====== Popup (nur Bild) ====== */
   .popup{
     background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.25);
     overflow:hidden; max-width:min(82vw, 440px); z-index:3;
   }
   .popup img{ display:block; width:100%; height:auto; }
-  .popup .content{ padding:12px 14px; }
-  .popup .title{ margin:0 0 6px; font-weight:700; font-size:16px; line-height:1.25; }
-  .popup .text{ margin:0; font-size:14px; line-height:1.4; }
 
   .fs-exit{
     position:absolute; top:10px; right:10px; z-index:999; display:none;
@@ -267,7 +262,6 @@
   let openPopupId = null;
   const popupTimers = new Map(); // id -> timeout
 
-  // NEU: offsetX/offsetY annehmen und weitergeben
   function addOverlay(x, y, id, iconUrl, popupImage, popupText, popupTitle, colorValue, offsetX = 0, offsetY = 0) {
     const { nx, ny } = normalizeXY(x, y);
     const overlay = document.createElement("button");
@@ -276,7 +270,6 @@
     overlay.setAttribute("aria-label", popupTitle || popupText || `Hotspot ${id}`);
     overlay.setAttribute("data-id", id);
 
-    // Icon (MEDIA/ICON) – Standard: gelber Button
     const finalIcon = iconUrl || ICON_DEFAULT;
 
     if (finalIcon) {
@@ -305,7 +298,6 @@
 
   async function handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlayEl, offsetX = 0, offsetY = 0){
     await ensureFullscreenIfNeeded();
-    // stärker ranzoomen & zentrieren
     focusOn(nx, ny, 1.6);
 
     if (openPopupId === id) { closePopup(id); return; }
@@ -313,39 +305,27 @@
   }
 
   function resolvePopupSrc(name){
-    // Wenn der XML-Wert bereits einen Pfad enthält, direkt verwenden
     if (!name) return null;
     if (name.includes("/")) return name;
-    // sonst zuerst in /Assets/popups/, fallback /Assets/popups-2/
     return `${POPUPS_DIRS[0]}/${name}`;
   }
 
+  // >>> Nur Bild rendern – kein Text/Title-Block <<<
   function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers=false, offsetX=0, offsetY=0){
     if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
     if (document.getElementById(`popup-${id}`)) return;
 
-    // Punkt ausblenden, solange Popup offen
     if (overlayEl) overlayEl.classList.add('is-hidden');
 
-    const safeTitle = popupTitle || popupText ? (popupTitle || "") : `Hotspot ${id}`;
-    const safeText  = (popupText || "").replace(/\n/g, "<br>");
-    const imgSrc    = resolvePopupSrc(popupImage);
+    const imgSrc = resolvePopupSrc(popupImage);
 
     const popup = document.createElement("div");
     popup.className = "popup";
     popup.id = `popup-${id}`;
     popup.role = "dialog";
-    popup.innerHTML = `
-      ${imgSrc ? `<img src="${imgSrc}" alt="${safeTitle ? safeTitle : 'Hotspot Bild'}" />` : ``}
-      ${(safeTitle || safeText) ? `
-        <div class="content">
-          ${safeTitle ? `<h3 class="title">${safeTitle}</h3>` : ``}
-          ${safeText ? `<p class="text">${safeText}</p>` : ``}
-        </div>` : ``}
-    `;
+    popup.innerHTML = `${imgSrc ? `<img src="${imgSrc}" alt="" />` : ``}`; // alt="" damit Screenreader nicht doppeln
     popup.addEventListener('click', e => e.stopPropagation());
 
-    // Offsets aus XML (in CSS-Pixeln) anwenden
     if (offsetX || offsetY) {
       popup.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
     }
@@ -359,7 +339,6 @@
     openPopupId = id;
     applyHotspotScale();
 
-    // Auto-Close nach 10s
     if (popupTimers.has(id)) { clearTimeout(popupTimers.get(id)); }
     const t = setTimeout(()=>{ closePopup(id); }, 10000);
     popupTimers.set(id, t);
@@ -374,7 +353,7 @@
     if (openPopupId === id) openPopupId = null;
   }
 
-  // XML laden – liest Icon/Popup/Text/Titel; Icon-Default = button-wim.png
+  // XML laden
   function loadHotspots(xmlFile) {
     fetch(xmlFile)
       .then(r => r.text())
@@ -387,43 +366,34 @@
           const y = parseFloat(node.getAttribute("Y"));
           const id = node.getAttribute("ID");
 
-          // WICHTIG: Bei dir heißt das Icon-Attribut häufig "MEDIA"
+          // Icon-Attribut inkl. MEDIA unterstützen
           const iconUrl =
                 node.getAttribute("ICON")     ||
                 node.getAttribute("ICONURL")  ||
                 node.getAttribute("ICON_URL") ||
                 node.getAttribute("MARKER")   ||
                 node.getAttribute("MEDIA")    ||
-                ""; // leer => wir setzen später ICON_DEFAULT
+                "";
 
           const popupImage =
-                node.getAttribute("POPUP") ||
+                node.getAttribute("POPUP")    ||
                 node.getAttribute("POPUPIMG") ||
-                node.getAttribute("IMAGE") ||
-                ""; // Dateiname / Pfad
-
-          const popupText  =
-                node.getAttribute("TEXT")   ||
-                node.getAttribute("DESC")   ||
-                node.getAttribute("CONTENT")||
+                node.getAttribute("IMAGE")    ||
                 "";
 
-          const popupTitle =
-                node.getAttribute("TITLE")  ||
-                node.getAttribute("LABEL")  ||
-                node.getAttribute("NAME")   ||
-                "";
+          // (Text/Titel werden bewusst ignoriert, damit nur Bilder erscheinen)
+          const popupText  = "";
+          const popupTitle = "";
 
           const colorValue =
-                node.getAttribute("COLOR")   ||
-                node.getAttribute("COLOUR")  ||
-                node.getAttribute("FARBE")   ||
-                node.getAttribute("FILL")    ||
-                node.getAttribute("BG")      ||
-                node.getAttribute("DOTCOLOR")||
+                node.getAttribute("COLOR")    ||
+                node.getAttribute("COLOUR")   ||
+                node.getAttribute("FARBE")    ||
+                node.getAttribute("FILL")     ||
+                node.getAttribute("BG")       ||
+                node.getAttribute("DOTCOLOR") ||
                 null;
 
-          // Popup-Versatz aus XML
           const offsetX = parseInt(node.getAttribute("POPOFFSETX") || "0", 10);
           const offsetY = parseInt(node.getAttribute("POPOFFSETY") || "0", 10);
 
