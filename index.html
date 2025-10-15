@@ -71,9 +71,28 @@
   /* ====== Popup (nur Bild) ====== */
   .popup{
     background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.25);
-    overflow:hidden; max-width:min(82vw, 440px); z-index:3;
+    overflow:hidden;
+    /* Popup darf fast die ganze Breite/Höhe nutzen */
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    z-index:3;
   }
-  .popup img{ display:block; width:100%; height:auto; }
+  .circle.is-fullscreen .popup{
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+  /* Bild in Originalgröße, aber nie größer als der Viewport */
+  .popup img{
+    display:block;
+    width:auto;
+    height:auto;
+    max-width:100%;
+    max-height:80vh;      /* außerhalb Vollbild */
+    object-fit:contain;   /* nichts wird abgeschnitten */
+  }
+  .circle.is-fullscreen .popup img{
+    max-height:88vh;      /* im Vollbild etwas höher ausnutzen */
+  }
 
   .fs-exit{
     position:absolute; top:10px; right:10px; z-index:999; display:none;
@@ -178,11 +197,9 @@
 
   // --- Responsive Hotspot-Größen ---
   function getHotspotSizeParams(){
-    // Phones / kleine Screens
     if (window.matchMedia('(max-width: 640px)').matches) {
       return { BASE: 16, MIN: 12, MAX: 20 };
     }
-    // Tablet/Desk
     return { BASE: 22, MIN: 16, MAX: 30 };
   }
 
@@ -193,7 +210,6 @@
     const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
     const fs = isFs ? 0.98 : 1.0;
 
-    // etwas konservativer skalieren, damit es mobil klein bleibt
     const size = Math.max(MIN, Math.min(MAX, BASE * fs * (0.90 + (z-1)*0.12)));
     document.querySelectorAll('.hotspot-overlay').forEach(el => {
       el.style.width  = `${size}px`;
