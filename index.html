@@ -24,15 +24,16 @@
   .m-header{ padding: calc(env(safe-area-inset-top) + 14px) var(--pad) 8px; }
   .m-header__logo{ width: clamp(150px, 48vw, 220px); height:auto; display:block; }
 
+  /* CTAs ohne runde Ecken */
   .cta{
     margin-top:10px; font-weight:700; text-transform:uppercase;
     font-size:clamp(13px,3.7vw,16px);
     background:var(--green); color:#fff;
-    padding:12px 16px; border-radius:0;           /* <- keine runden Ecken */
+    padding:12px 16px; border-radius:0;
     display:inline-flex; align-items:center; justify-content:center;
     box-shadow:0 2px 8px rgba(0,0,0,.12);
   }
-  .cta.square{ border-radius:0; }                 /* bleibt konsistent */
+  .cta.square{ border-radius:0; }
   .cta:active{ transform:scale(.98); }
   .m-ctas{ margin-top:12px; display:grid; gap:10px; max-width:360px; }
 
@@ -42,47 +43,53 @@
   .circle-wrap{ padding:18px var(--pad) 6px; display:grid; place-items:center; }
   .circle{
     width:min(86vw,520px); aspect-ratio:1/1;
-    border-radius:50%;                              /* wirklich rund */
-    clip-path:circle(50% at 50% 50%);               /* bleibt runder Ausschnitt */
-    background:transparent;                         /* kein sichtbares Quadrat */
+    border-radius:50%;
+    clip-path:circle(50% at 50% 50%);
+    background:transparent;
     overflow:hidden; position:relative; box-shadow:0 8px 28px rgba(0,0,0,.18);
+    /* Kanten glätten (gegen „Fünfeck“-Look) */
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 99.6%, transparent 100%);
+            mask-image: radial-gradient(circle at 50% 50%, #000 99.6%, transparent 100%);
+    will-change: clip-path;
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
   }
   .circle.is-fullscreen{
-    /* Vollbild behält den Kreis bei, kein rechteckiger Container sichtbar */
     clip-path:circle(50% at 50% 50%);
     border-radius:50%;
     width:100vw; height:100vh;
     background:transparent;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 99.6%, transparent 100%);
+            mask-image: radial-gradient(circle at 50% 50%, #000 99.6%, transparent 100%);
   }
-  /* Pseudo-FS auch kreisrund halten */
   .pseudo-fs .circle{
     clip-path:circle(50% at 50% 50%)!important;
     border-radius:50%!important;
     position:fixed!important; inset:0!important; width:100vw!important; height:100vh!important;
     background:transparent!important; z-index:998!important;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 99.6%, transparent 100%);
+            mask-image: radial-gradient(circle at 50% 50%, #000 99.6%, transparent 100%);
   }
 
   #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
-  /* ====== Hotspots ====== */
+  /* Hotspots ohne Kastenrand / Shadow, nur Icon-Kreis */
   .hotspot-overlay{
     width:20px; height:20px;
-    background:transparent;                         /* kein Kasten-Hintergrund */
+    background:transparent;
     background-size:contain; background-position:center; background-repeat:no-repeat;
-    border:0;                                       /* kein Rand */
-    border-radius:50%;                              /* form folgt Icon-Kreis */
-    box-shadow:none;                                /* kein eckiger Shadow */
+    border:0; border-radius:50%;
+    box-shadow:none;
     cursor:pointer; touch-action:manipulation; opacity:1; z-index:2;
     transition:opacity .15s ease;
   }
   .hotspot-overlay.has-icon{ background-color:transparent; border:0 !important; box-shadow:none !important; border-radius:50% !important; }
   .hotspot-overlay.is-hidden{ opacity:0; pointer-events:none; }
-
-  /* Im Vollbild auch KEINE Rahmen erzwingen */
   .circle.is-fullscreen .hotspot-overlay,
-  .pseudo-fs .hotspot-overlay{ opacity:1; border:0 !important; box-shadow:none !important; }
+  .pseudo-fs         .hotspot-overlay{ opacity:1; border:0 !important; box-shadow:none !important; }
 
-  /* ====== Popup (wieder Text, etwas kleiner) ====== */
+  /* Popup (Text wieder aktiv, etwas kleiner) */
   .popup{
     background:#fff;
     padding:12px 14px;
@@ -94,20 +101,24 @@
     max-height:70vh;
     z-index:3;
   }
-  .circle.is-fullscreen .popup{
-    max-width:min(90vw, 420px);
-    max-height:72vh;
-  }
+  .circle.is-fullscreen .popup{ max-width:min(90vw, 420px); max-height:72vh; }
   .popup img{
-    display:block;
-    width:auto; height:auto; max-width:100%; max-height:40vh; object-fit:contain;
+    display:block; width:auto; height:auto; max-width:100%; max-height:40vh; object-fit:contain;
     border-radius:8px; margin:0 0 8px 0;
   }
-  .popup-title{
-    margin:0 0 6px 0; font-weight:700; font-size:clamp(14px, 4vw, 16px); line-height:1.2;
+  .popup-title{ margin:0 0 6px 0; font-weight:700; font-size:clamp(14px, 4vw, 16px); line-height:1.2; }
+  .popup-text{  margin:0; font-size:clamp(12px, 3.4vw, 14px); line-height:1.45; color:#222; }
+
+  /* OSD-Controls: normal links oben; im Vollbild oben mittig und sicher sichtbar */
+  #myContainer .openseadragon-controls{
+    position:absolute !important;
+    top:10px; left:10px; z-index:50;
   }
-  .popup-text{
-    margin:0; font-size:clamp(12px, 3.4vw, 14px); line-height:1.45; color:#222;
+  .circle.is-fullscreen #myContainer .openseadragon-controls,
+  .pseudo-fs         #myContainer .openseadragon-controls{
+    top:12px !important;
+    left:50% !important;
+    transform:translateX(-50%);
   }
 
   .fs-exit{
@@ -410,16 +421,16 @@
                 node.getAttribute("IMAGE")    ||
                 "";
 
-          /* >>> wieder Text & Titel auslesen <<< */
+          /* Text & Titel auslesen */
           const popupText  =
-                node.getAttribute("TEXT")       ||
+                node.getAttribute("TEXT")         ||
                 node.getAttribute("BESCHREIBUNG") ||
-                node.getAttribute("DESC")       ||
+                node.getAttribute("DESC")         ||
                 "";
           const popupTitle =
-                node.getAttribute("TITLE")      ||
-                node.getAttribute("TITEL")      ||
-                node.getAttribute("NAME")       ||
+                node.getAttribute("TITLE") ||
+                node.getAttribute("TITEL") ||
+                node.getAttribute("NAME")  ||
                 "";
 
           const colorValue =
