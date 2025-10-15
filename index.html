@@ -97,7 +97,7 @@
     }
 
     /* ========================= MOBILE STYLES ========================= */
-    .mobile-shell .m-header{ padding: calc(env(safe-area-inset-top) + 14px) var(--pad) 8px; }
+    .mobile-shell .m-header{ padding: calc(env(safe-area-inset-top) + 14px) var(--pad) 16px; }
     .mobile-shell .m-header__logo{ width: clamp(150px, 48vw, 220px); height:auto; display:block; }
 
     .mobile-shell .cta{
@@ -106,14 +106,14 @@
     }
     .mobile-shell .cta.square{ border-radius:0; }
     .mobile-shell .cta:active{ transform:scale(.98); }
-    .mobile-shell .m-ctas{ margin-top:12px; display:grid; gap:10px; max-width:360px; }
+    .mobile-shell .m-ctas{ margin-top:16px; margin-bottom:16px; display:grid; gap:12px; max-width:360px; }
 
-    .mobile-shell .m-headline{ padding:8px var(--pad) 0; }
+    .mobile-shell .m-headline{ padding:20px var(--pad) 0; }
     .mobile-shell .m-headline h1{ margin:0; font-size:clamp(18px,5.2vw,22px); line-height:1.28; }
 
     .mobile-shell .circle-wrap{ padding:18px var(--pad) 6px; display:grid; place-items:center; }
     .mobile-shell .circle{ width:min(86vw,520px); aspect-ratio:1/1; border-radius:0px; clip-path:circle(50% at 50% 50%); background:var(--green-dark); overflow:hidden; position:relative; box-shadow:0 8px 28px rgba(0,0,0,.18); }
-    .mobile-shell .circle.is-fullscreen{ clip-path:none; border-radius:0; width:100vw; height:100vh; background:#000; }
+    .mobile-shell .circle.is-fullscreen{ clip-path:none; border-radius:0; width:100vw; height:100vh; background:#000; position:fixed; inset:0; }
     .mobile-shell .pseudo-fs .circle{ clip-path:none!important; border-radius:0!important; position:fixed!important; inset:0!important; width:100vw!important; height:100vh!important; background:#000!important; z-index:998!important; }
 
     .mobile-shell #myContainerMobile{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
@@ -140,7 +140,16 @@
     .mobile-shell .flag.en{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
     .mobile-shell .text-link{ color:var(--green); }
     .mobile-shell .m-footer p{ margin:0; font-size:14px; }
-  </style>
+    /* CTA underline fix */
+  .mobile-shell .cta,
+  .mobile-shell .cta:link,
+  .mobile-shell .cta:visited,
+  .mobile-shell .cta:hover,
+  .mobile-shell .cta:active{ text-decoration:none !important; }
+
+  /* Fullscreen background + no scroll bleed */
+  html.fs-on, html.fs-on body{ background:#000 !important; overflow:hidden; }
+</style>
 
   <!-- Matomo (from desktop) -->
   <script type="text/javascript">
@@ -281,7 +290,7 @@
     <header class="m-header">
       <img src="img/logo.png" alt="Plan:g – logo" class="m-header__logo" />
       <div class="m-ctas">
-        <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" rel="noopener" class="cta">Dieses Poster</a>
+        <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" rel="noopener" class="cta square">Dieses Poster</a>
         <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" rel="noopener" class="cta square">Unsere Arbeit</a>
         <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" rel="noopener" class="cta square">Informiert bleiben</a>
       </div>
@@ -361,7 +370,11 @@
         function supportsFullscreen(){ return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen); }
         function enterFullscreen(){ if (circleEl.requestFullscreen) return circleEl.requestFullscreen(); if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen(); if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen(); }
         function exitFullscreen(){ if (document.exitFullscreen) return document.exitFullscreen(); if (document.webkitExitFullscreen) return document.webkitExitFullscreen(); if (document.msExitFullscreen) return document.msExitFullscreen(); }
-        function setFullscreenClasses(isFs){ circleEl.classList.toggle('is-fullscreen', isFs); if (!supportsFullscreen()) { document.body.classList.toggle('pseudo-fs', isFs); } }
+        function setFullscreenClasses(isFs){
+    circleEl.classList.toggle('is-fullscreen', isFs);
+    document.documentElement.classList.toggle('fs-on', isFs);
+    if (!supportsFullscreen()){ document.body.classList.toggle('pseudo-fs', isFs); }
+  } }
         document.addEventListener('fullscreenchange', ()=>{ const isFs = document.fullscreenElement === circleEl; setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); });
         document.addEventListener('webkitfullscreenchange', ()=>{ const isFs = document.webkitFullscreenElement === circleEl; setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); });
         function updatePanBounds(isFs){ if (isFs || document.body.classList.contains('pseudo-fs')){ viewer.constrainDuringPan = false; viewer.viewport.setVisibilityRatio(0.2); viewer.minZoomImageRatio = 0.8; } else { viewer.constrainDuringPan = true; viewer.viewport.setVisibilityRatio(0.95); viewer.minZoomImageRatio = 1; } }
@@ -471,7 +484,7 @@
         }
 
         window.addEventListener('orientationchange', () => setTimeout(applyHotspotScale, 50));
-      }
+      
     </script>
   </div>
 
