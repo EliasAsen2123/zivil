@@ -32,6 +32,8 @@
     display:inline-flex; align-items:center; justify-content:center;
     box-shadow:0 2px 8px rgba(0,0,0,.12);
   }
+  /* square variant for CTAs that should have sharp corners */
+  .cta.square{ border-radius:0; }
   .cta:active{ transform:scale(.98); }
   .m-ctas{ margin-top:12px; display:grid; gap:10px; max-width:360px; }
 
@@ -116,9 +118,9 @@
   <header class="m-header">
     <img src="img/logo.png" alt="Plan:g – logo" class="m-header__logo" />
     <div class="m-ctas">
-      <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" rel="noopener" class="cta">Dieses Poster</a>
-      <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" rel="noopener" class="cta">Unsere Arbeit</a>
-      <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" rel="noopener" class="cta">Informiert bleiben</a>
+  <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" rel="noopener" class="cta">Dieses Poster</a>
+  <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" rel="noopener" class="cta square">Unsere Arbeit</a>
+  <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" rel="noopener" class="cta square">Informiert bleiben</a>
     </div>
   </header>
 
