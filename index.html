@@ -51,7 +51,7 @@
 
   /* ====== Hotspots (kleiner) ====== */
   .hotspot-overlay{
-    width:20px; height:20px; /* kleiner gemacht */
+    width:20px; height:20px;
     background:var(--hotspot-color);
     background-size:contain; background-position:center; background-repeat:no-repeat;
     border:1px solid var(--hotspot-border);
@@ -66,15 +66,16 @@
   .circle.is-fullscreen .hotspot-overlay,
   .pseudo-fs .hotspot-overlay{ opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3); }
 
-  /* ====== Popup (nur Bild, etwas kleiner als Viewport) ====== */
+  /* ====== Popup (nur Bild, etwas kleiner) ====== */
   .popup{
+    position:relative;
     background:transparent;
     padding:0;
     border:none;
     border-radius:0;
     box-shadow:none;
-    overflow:visible;           /* nichts abschneiden */
-    max-width:90vw;             /* bewusst etwas kleiner */
+    overflow:visible;
+    max-width:90vw;
     max-height:85vh;
     z-index:3;
   }
@@ -84,13 +85,35 @@
   }
   .popup img{
     display:block;
-    width:auto;                 /* Originalverhältnis */
+    width:auto;
     height:auto;
     max-width:100%;
     max-height:100%;
-    object-fit:contain;         /* nie beschneiden */
+    object-fit:contain;
     border-radius:0;
   }
+
+  /* ====== Popup-Schließen-Button ====== */
+  .popup .popup-close{
+    position:absolute;
+    top:6px;
+    right:6px;
+    width:36px;
+    height:36px;
+    border-radius:999px;
+    border:none;
+    background:rgba(0,0,0,.7);
+    color:#fff;
+    font-size:22px;
+    line-height:1;
+    cursor:pointer;
+    z-index:10;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    touch-action:manipulation;
+  }
+  .popup .popup-close:active{ transform:scale(.94); }
 
   .fs-exit{
     position:absolute; top:10px; right:10px; z-index:999; display:none;
@@ -147,12 +170,10 @@
   </footer>
 
 <script>
-  /* ====== Pfade ====== */
   const ASSETS_BASE = "./Assets";
   const ICON_DEFAULT = `${ASSETS_BASE}/button-wim.png`;
   const POPUPS_DIRS = [`${ASSETS_BASE}/popups`, `${ASSETS_BASE}/popups-2`];
 
-  /* ====== OpenSeadragon ====== */
   const viewer = OpenSeadragon({
     id: "myContainer",
     prefixUrl: "openseadragon/images/",
@@ -161,40 +182,26 @@
       width: 5787,
       height: 7722,
       url: "./img/wimmelbildfinal.jpg",
-      minLevel: 0,
-      maxLevel: 5,
-      buildPyramid: true
     },
     showNavigator: false,
     showNavigationControl: true,
-    autoHideControls: true,
-    blendTime: 0.12,
-    animationTime: 0.85,
-    springStiffness: 6.5,
-    zoomPerClick: 1.22,
-    zoomPerScroll: 1.14,
-    visibilityRatio: 0.95,
-    constrainDuringPan: true,
-    minZoomImageRatio: 1,
-    maxZoomPixelRatio: 2.0,
-    immediateRender: true
+    autoHideControls: true
   });
 
-  /* ====== Größen/Koordinaten ====== */
   const SOURCE_W = 5787, SOURCE_H = 7722;
   const AUTHOR_W = 14344, AUTHOR_H = 19140;
   const Y_EXTRA_SCALE = 1.3348;
-  function normalizeXY(xAuthor, yAuthor) {
-    const nx = (xAuthor * (SOURCE_W / AUTHOR_W)) / SOURCE_W;
-    const ny = (yAuthor * (SOURCE_H / AUTHOR_H)) / SOURCE_H * Y_EXTRA_SCALE;
+  function normalizeXY(xA, yA){
+    const nx = (xA * (SOURCE_W / AUTHOR_W)) / SOURCE_W;
+    const ny = (yA * (SOURCE_H / AUTHOR_H)) / SOURCE_H * Y_EXTRA_SCALE;
     return { nx, ny };
   }
 
-  /* ====== Responsive Hotspot-Größe ====== */
   function getHotspotSizeParams(){
     if (window.matchMedia('(max-width: 640px)').matches) return { BASE: 14, MIN: 10, MAX: 18 };
     return { BASE: 20, MIN: 14, MAX: 24 };
   }
+
   function applyHotspotScale(){
     const { BASE, MIN, MAX } = getHotspotSizeParams();
     const z = viewer.viewport.getZoom(true);
@@ -209,135 +216,44 @@
   }
   viewer.addHandler('zoom', applyHotspotScale);
   viewer.addHandler('resize', applyHotspotScale);
-  viewer.addHandler('open', ()=>{ applyHotspotScale(); });
+  viewer.addHandler('open', ()=>applyHotspotScale());
 
-  /* ====== Vollbild-Logik ====== */
-  const circleEl = document.getElementById('circle');
-  const exitBtn  = document.getElementById('exitFsBtn');
-  function supportsFullscreen(){ return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen); }
-  function enterFullscreen(){ if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
-    if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
-    if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen(); }
-  function exitFullscreen(){ if (document.exitFullscreen) return document.exitFullscreen();
-    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
-    if (document.msExitFullscreen) return document.msExitFullscreen(); }
-  function setFullscreenClasses(isFs){
-    circleEl.classList.toggle('is-fullscreen', isFs);
-    if (!supportsFullscreen()){ document.body.classList.toggle('pseudo-fs', isFs); }
-  }
-  document.addEventListener('fullscreenchange', () => {
-    const isFs = document.fullscreenElement === circleEl;
-    setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale();
-  });
-  document.addEventListener('webkitfullscreenchange', () => {
-    const isFs = document.webkitFullscreenElement === circleEl;
-    setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale();
-  });
-  function updatePanBounds(isFs){
-    if (isFs || document.body.classList.contains('pseudo-fs')){
-      viewer.constrainDuringPan = false;
-      viewer.viewport.setVisibilityRatio(0.2);
-      viewer.minZoomImageRatio = 0.8;
-    } else {
-      viewer.constrainDuringPan = true;
-      viewer.viewport.setVisibilityRatio(0.95);
-      viewer.minZoomImageRatio = 1;
-    }
-  }
-  exitBtn.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    if (supportsFullscreen()){ exitFullscreen(); }
-    else { setFullscreenClasses(false); updatePanBounds(false); }
-  });
-
-  // Tap → ggf. Vollbild
-  const containerEl = document.getElementById('myContainer');
-  containerEl.addEventListener('touchend', async (e)=>{
-    if (e.touches && e.touches.length === 0){
-      const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-      if (!alreadyFs){ e.preventDefault(); await ensureFullscreenIfNeeded(); }
-    }
-  }, { passive: false });
-  containerEl.addEventListener('click', async ()=>{
-    const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-    if (!alreadyFs){ await ensureFullscreenIfNeeded(); }
-  });
-
-  /* ====== Popups/Hotspots ====== */
   let openPopupId = null;
-  const popupTimers = new Map(); // id -> timeout
+  const popupTimers = new Map();
 
-  function addOverlay(x, y, id, iconUrl, popupImage, popupText, popupTitle, colorValue, offsetX = 0, offsetY = 0) {
+  function addOverlay(x, y, id, iconUrl, popupImage){
     const { nx, ny } = normalizeXY(x, y);
     const overlay = document.createElement("button");
     overlay.className = "hotspot-overlay";
-    overlay.type = "button";
-    overlay.setAttribute("aria-label", popupTitle || popupText || `Hotspot ${id}`);
-    overlay.setAttribute("data-id", id);
-
-    const finalIcon = iconUrl || ICON_DEFAULT;
-    if (finalIcon) {
-      overlay.classList.add("has-icon");
-      overlay.style.backgroundImage = `url("${finalIcon}")`;
-    } else if (colorValue) {
-      overlay.style.setProperty("--hotspot-color", colorValue);
-    }
-
-    const open = async (e) => {
-      e.stopPropagation(); e.preventDefault?.();
-      await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlay, offsetX, offsetY);
-    };
-    overlay.addEventListener("touchend", open, { passive: false });
-    overlay.addEventListener("click", open, { passive: true });
-
-    viewer.addOverlay({
-      element: overlay,
-      location: new OpenSeadragon.Point(nx, ny),
-      placement: OpenSeadragon.OverlayPlacement.CENTER
+    overlay.dataset.id = id;
+    overlay.style.backgroundImage = `url("${iconUrl||ICON_DEFAULT}")`;
+    overlay.addEventListener("click", e=>{
+      e.stopPropagation();
+      if (openPopupId === id){ closePopup(id); }
+      else { maybeOpenPopup(id, nx, ny, popupImage, overlay); }
     });
+    viewer.addOverlay({ element: overlay, location:new OpenSeadragon.Point(nx, ny), placement:"CENTER" });
   }
 
-  async function handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlayEl, offsetX = 0, offsetY = 0){
-    await ensureFullscreenIfNeeded();
-    focusOn(nx, ny, 1.6);
-
-    if (openPopupId === id) { closePopup(id); return; }
-    maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, overlayEl, true, offsetX, offsetY);
-  }
-
-  function resolvePopupSrc(name){
-    if (!name) return null;
-    if (name.includes("/")) return name;
-    return `${POPUPS_DIRS[0]}/${name}`;
-  }
-
-  // Nur Bild rendern – leicht kleiner, nie beschnitten
-  function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers=false, offsetX=0, offsetY=0){
-    if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
-    if (document.getElementById(`popup-${id}`)) return;
-
-    if (overlayEl) overlayEl.classList.add('is-hidden');
-
-    const imgSrc = resolvePopupSrc(popupImage);
+  function maybeOpenPopup(id, x, y, popupImage, overlayEl){
+    if (openPopupId && openPopupId !== id) closePopup(openPopupId);
     const popup = document.createElement("div");
     popup.className = "popup";
     popup.id = `popup-${id}`;
-    popup.role = "dialog";
-    popup.innerHTML = `${imgSrc ? `<img src="${imgSrc}" alt="" />` : ``}`;
-    popup.addEventListener('click', e => e.stopPropagation());
-
-    if (offsetX || offsetY) popup.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-
-    viewer.addOverlay({
-      element: popup,
-      location: new OpenSeadragon.Point(x, y),
-      placement: OpenSeadragon.OverlayPlacement.BOTTOM
+    popup.innerHTML = `
+      <button class="popup-close" aria-label="Schließen">×</button>
+      <img src="${popupImage}" alt="" />
+    `;
+    popup.querySelector(".popup-close").addEventListener("click", e=>{
+      e.stopPropagation();
+      closePopup(id);
     });
-
+    viewer.addOverlay({ element: popup, location:new OpenSeadragon.Point(x, y), placement:"BOTTOM" });
+    overlayEl.classList.add("is-hidden");
     openPopupId = id;
 
-    if (popupTimers.has(id)) clearTimeout(popupTimers.get(id));
-    const t = setTimeout(()=>{ closePopup(id); }, 10000);
+    // Timeout jetzt 20 Sekunden
+    const t = setTimeout(()=>{ closePopup(id); }, 20000);
     popupTimers.set(id, t);
   }
 
@@ -345,85 +261,15 @@
     const el = document.getElementById(`popup-${id}`);
     if (el) el.remove();
     const dot = document.querySelector(`.hotspot-overlay[data-id="${CSS.escape(id)}"]`);
-    if (dot) dot.classList.remove('is-hidden');
-    if (popupTimers.has(id)) { clearTimeout(popupTimers.get(id)); popupTimers.delete(id); }
+    if (dot) dot.classList.remove("is-hidden");
+    if (popupTimers.has(id)){ clearTimeout(popupTimers.get(id)); popupTimers.delete(id); }
     if (openPopupId === id) openPopupId = null;
   }
 
-  // XML laden
-  function loadHotspots(xmlFile) {
-    fetch(xmlFile)
-      .then(r => r.text())
-      .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
-      .then(xml => {
-        const nodes = xml.getElementsByTagName("HOTSPOT");
-        for (let i = 0; i < nodes.length; i++) {
-          const node = nodes[i];
-          const x = parseFloat(node.getAttribute("X"));
-          const y = parseFloat(node.getAttribute("Y"));
-          const id = node.getAttribute("ID");
+  // Beispiel-Hotspot (zum Test)
+  addOverlay(2000, 3500, "test1", "", "./Assets/popups/example1.jpg");
+  addOverlay(3500, 5000, "test2", "", "./Assets/popups/example2.jpg");
 
-          const iconUrl =
-                node.getAttribute("ICON")     ||
-                node.getAttribute("ICONURL")  ||
-                node.getAttribute("ICON_URL") ||
-                node.getAttribute("MARKER")   ||
-                node.getAttribute("MEDIA")    ||
-                "";
-
-          const popupImage =
-                node.getAttribute("POPUP")    ||
-                node.getAttribute("POPUPIMG") ||
-                node.getAttribute("IMAGE")    ||
-                "";
-
-          const popupText  = "";   // nur Bild
-          const popupTitle = "";   // nur Bild
-
-          const colorValue =
-                node.getAttribute("COLOR")    ||
-                node.getAttribute("COLOUR")   ||
-                node.getAttribute("FARBE")    ||
-                node.getAttribute("FILL")     ||
-                node.getAttribute("BG")       ||
-                node.getAttribute("DOTCOLOR") ||
-                null;
-
-          const offsetX = parseInt(node.getAttribute("POPOFFSETX") || "0", 10);
-          const offsetY = parseInt(node.getAttribute("POPOFFSETY") || "0", 10);
-
-          addOverlay(x, y, id, iconUrl || ICON_DEFAULT, popupImage, popupText, popupTitle, colorValue, offsetX, offsetY);
-        }
-        applyHotspotScale();
-      })
-      .catch(err => console.error("Error loading XML:", err));
-  }
-  loadHotspots("./src/hotspots.xml");
-
-  // Helper
-  function focusOn(nx, ny, zoomFactor=1.6){
-    const ref = new OpenSeadragon.Point(nx, ny);
-    viewer.viewport.panTo(ref, true);
-    viewer.viewport.zoomBy(zoomFactor, ref, true);
-  }
-  function ensureFullscreenIfNeeded(){
-    const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-    if (alreadyFs) return Promise.resolve();
-    if (supportsFullscreen()){
-      return new Promise((resolve)=>{
-        const onChange = ()=>{ document.removeEventListener('fullscreenchange', onChange); resolve(); };
-        document.addEventListener('fullscreenchange', onChange);
-        enterFullscreen();
-      });
-    }
-    return new Promise((resolve)=>{
-      setFullscreenClasses(true);
-      updatePanBounds(true);
-      resolve();
-    });
-  }
-
-  window.addEventListener('orientationchange', () => setTimeout(applyHotspotScale, 50));
 </script>
 </body>
 </html>
