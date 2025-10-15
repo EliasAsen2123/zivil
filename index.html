@@ -54,16 +54,14 @@
 
   #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
-  /* ====== Herz oben rechts (ersetzt das frühere X) ====== */
+  /* Herz oben rechts (statt des Close-X) */
   .heart-cta{
     position:absolute; top:12px; right:12px; z-index:1000;
     display:block; opacity:1;
   }
-  .heart-cta img{
-    display:block; width: clamp(24px, 6vw, 44px); height:auto;
-  }
+  .heart-cta img{ display:block; width: clamp(24px, 6vw, 44px); height:auto; }
 
-  /* ====== Hotspots: nur runde Icons, kein Quadrat/Highlight ====== */
+  /* Hotspots: nur runde Icons, kein Quadrat/Highlight */
   .hotspot-overlay{
     width:20px; height:20px;
     background:var(--hotspot-color);
@@ -99,29 +97,13 @@
   .circle.is-fullscreen .hotspot-overlay,
   .pseudo-fs .hotspot-overlay{ opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3); }
 
-  /* ====== Popup (nur Bild) ====== */
+  /* Popup (nur Bild) */
   .popup{
     background:transparent; padding:0; border:none; border-radius:0; box-shadow:none;
     overflow:visible; max-width:90vw; max-height:85vh; z-index:3;
   }
   .circle.is-fullscreen .popup{ max-width:90vw; max-height:85vh; }
   .popup img{ display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; border-radius:0; }
-
-  /* ====== eigener OSD-Button: Vollbild verlassen (↩︎) ====== */
-  .osd-exitfs-btn{
-    width:32px; height:32px;
-    border-radius:50%;
-    border:1px solid rgba(0,0,0,.25);
-    background:#fff;
-    display:inline-flex; align-items:center; justify-content:center;
-    font-size:18px; line-height:1;
-    box-shadow:0 1px 4px rgba(0,0,0,.35);
-    cursor:pointer;
-    margin-left:6px;    /* rechts neben dem Haus-Icon */
-    -webkit-tap-highlight-color: rgba(0,0,0,0);
-  }
-  .osd-exitfs-btn:active{ transform:scale(.97); }
-  .osd-exitfs-btn.is-hidden{ display:none; }
 
   .m-footer{ padding:12px var(--pad) calc(env(safe-area-inset-bottom) + 18px); display:grid; gap:8px; }
   .language{ display:flex; gap:12px; align-items:center; }
@@ -156,7 +138,7 @@
       <!-- Viewer -->
       <div id="myContainer" role="application" aria-label="Wimmelbild Viewer"></div>
 
-      <!-- Herz oben rechts (statt des X) -->
+      <!-- Herz oben rechts -->
       <a class="heart-cta" href="https://plan-g.at/ueber-uns" target="_blank" rel="noopener" aria-label="Über uns">
         <img src="assets/img/signet_heart.png" alt="" />
       </a>
@@ -235,7 +217,9 @@
   }
   viewer.addHandler('zoom', applyHotspotScale);
   viewer.addHandler('resize', applyHotspotScale);
-  viewer.addHandler('open', ()=>{ applyHotspotScale(); });
+  viewer.addHandler('open', ()=>{ applyHotspotScale(); hookOsdFullPageButton(); });
+  // falls 'open' nicht feuert (Edge-Cases), einmal nach dem Init versuchen
+  setTimeout(hookOsdFullPageButton, 0);
 
   /* ====== Vollbild-Logik ====== */
   const circleEl = document.getElementById('circle');
@@ -264,11 +248,11 @@
 
   document.addEventListener('fullscreenchange', () => {
     const isFs = document.fullscreenElement === circleEl;
-    setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); toggleExitFsButton(isFs);
+    setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale();
   });
   document.addEventListener('webkitfullscreenchange', () => {
     const isFs = document.webkitFullscreenElement === circleEl;
-    setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); toggleExitFsButton(isFs);
+    setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale();
   });
 
   // Tap → ggf. Vollbild
@@ -289,11 +273,7 @@
     if (alreadyFs) return Promise.resolve();
     if (supportsFullscreen()){
       return new Promise((resolve)=>{
-        const onChange = ()=>{
-          document.removeEventListener('fullscreenchange', onChange);
-          toggleExitFsButton(true);
-          resolve();
-        };
+        const onChange = ()=>{ document.removeEventListener('fullscreenchange', onChange); resolve(); };
         document.addEventListener('fullscreenchange', onChange);
         enterFullscreen();
       });
@@ -301,28 +281,29 @@
     return new Promise((resolve)=>{
       setFullscreenClasses(true);
       updatePanBounds(true);
-      toggleExitFsButton(true);
       resolve();
     });
   }
 
-  /* ====== eigener Control-Button: “Vollbild verlassen” ====== */
-  const exitFsBtnCtrl = document.createElement('button');
-  exitFsBtnCtrl.className = 'osd-exitfs-btn is-hidden';
-  exitFsBtnCtrl.type = 'button';
-  exitFsBtnCtrl.title = 'Vollbild verlassen';
-  exitFsBtnCtrl.setAttribute('aria-label','Vollbild verlassen');
-  exitFsBtnCtrl.textContent = '↩︎'; // Pfeil-Symbol
-  exitFsBtnCtrl.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    if (supportsFullscreen()){ exitFullscreen(); }
-    else { setFullscreenClasses(false); updatePanBounds(false); }
-    toggleExitFsButton(false);
-  });
-  viewer.addControl(exitFsBtnCtrl, { anchor: OpenSeadragon.ControlAnchor.TOP_LEFT });
+  /* === Bestehenden OSD-Button (rechts neben Haus) für Fullscreen EIN/AUS nutzen === */
+  function hookOsdFullPageButton(){
+    const root = viewer.container || document.getElementById('myContainer');
+    if (!root) return;
+    const btn = root.querySelector('.openseadragon-full-page') ||
+                root.querySelector('[title*="Full"],[title*="Voll"],[title*="page"]');
+    if (!btn || btn.__pgHooked) return;
 
-  function toggleExitFsButton(show){
-    exitFsBtnCtrl.classList.toggle('is-hidden', !show);
+    btn.__pgHooked = true;
+    btn.addEventListener('click', (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      const inFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
+      if (inFs){
+        if (supportsFullscreen()) exitFullscreen();
+        else { setFullscreenClasses(false); updatePanBounds(false); }
+      } else {
+        ensureFullscreenIfNeeded();
+      }
+    }, true); // capture: vor OSD Standard reagieren
   }
 
   /* ====== Popups/Hotspots ====== */
