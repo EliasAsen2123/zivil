@@ -21,7 +21,7 @@
   html,body{ margin:0; background:var(--bg); font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:#111; }
   a{ color:inherit; text-decoration:none; }
 
-  /* mehr Luft unter dem Header */
+  /* Header + Abstände */
   .m-header{ padding: calc(env(safe-area-inset-top) + 14px) var(--pad) 16px; }
   .m-header__logo{ width: clamp(150px, 48vw, 220px); height:auto; display:block; }
 
@@ -35,21 +35,17 @@
   }
   .cta.square{ border-radius:0; }
   .cta:active{ transform:scale(.98); }
-
-  /* Buttons etwas weiter auseinander und etwas weiter vom Logo weg */
   .m-ctas{ margin-top:14px; display:grid; gap:12px; max-width:360px; }
 
-  /* Überschrift mit mehr Luft nach oben und unten */
   .m-headline{ padding:12px var(--pad) 0; margin-bottom: clamp(14px, 4vw, 26px); }
   .m-headline h1{ margin:0; font-size:clamp(18px,5.2vw,22px); line-height:1.28; }
 
-  /* Wimmelbild-Block mit mehr vertikalem Abstand */
   .circle-wrap{
     padding: clamp(22px, 4.8vw, 32px) var(--pad) clamp(14px, 3.6vw, 24px);
     display:grid; place-items:center;
   }
   .circle{
-    width:min(86vw,520px); aspect-ratio:1/1; border-radius:0px;
+    width:min(86vw,520px); aspect-ratio:1/1; border-radius:0;
     clip-path:circle(50% at 50% 50%); background:var(--green-dark);
     overflow:hidden; position:relative; box-shadow:0 8px 28px rgba(0,0,0,.18);
   }
@@ -58,35 +54,41 @@
 
   #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
-  /* ====== Hotspots ====== */
+  /* ====== Herz-Overlay (NEU) ====== */
+  .heart-cta{
+    position:absolute; top:25px; left:25px; z-index:1000;
+    display:none; opacity:0; transition:opacity .25s ease;
+  }
+  .heart-cta img{
+    display:block; width: clamp(24px, 6vw, 44px); height:auto;
+    pointer-events:none; /* nur der Link klickbar */
+  }
+  /* sichtbar: Hover über den Viewer */
+  #myContainer:hover + .heart-cta{ display:block; opacity:1; }
+  /* sichtbar: nach erstem Tap/Klick auf Touch-Geräten */
+  body.expanded .heart-cta{ display:block; opacity:1; }
+
+  /* ====== Hotspots: nur runde Icons, kein Quadrat/Highlight ====== */
   .hotspot-overlay{
     width:20px; height:20px;
     background:var(--hotspot-color);
     background-size:contain; background-position:center; background-repeat:no-repeat;
     border:1px solid var(--hotspot-border);
-    border-radius:0px;
+    border-radius:0;
     box-shadow:0 1px 4px rgba(0,0,0,.35);
     cursor:pointer; touch-action:manipulation; opacity:1; z-index:2;
     transition:opacity .15s ease;
-
-    /* iOS Tip-Highlight aus */
     -webkit-tap-highlight-color: rgba(0,0,0,0);
   }
-
-  /* >>> Nur Icon-Kreis, ohne Quadrat, immer wirklich rund <<< */
   .hotspot-overlay.has-icon{
-    /* keine systemeigenen Button-Styles */
     appearance:none; -webkit-appearance:none;
     padding:0;
-    /* nur HintergrundBILD behalten, KEINE Fläche/Border/Shadow */
     background-color:transparent !important;
     border:0 !important;
     box-shadow:none !important;
     outline:none !important;
-
-    /* Element selbst rund clippen, damit nie ein Quadrat sichtbar ist */
     border-radius:9999px !important;
-    overflow:hidden;                 /* falls das PNG etwas übersteht */
+    overflow:hidden;
     background-clip:padding-box;
   }
   .hotspot-overlay.has-icon:focus,
@@ -97,27 +99,18 @@
     border:0 !important;
     box-shadow:none !important;
   }
-  /* auch im Vollbild keine Border/Shadow für Icon-Hotspots */
-  .circle.is-fullscreen .hotspot-overlay.has-icon,
-  .pseudo-fs .hotspot-overlay.has-icon{
-    border:0 !important;
-    box-shadow:none !important;
-  }
-
   .hotspot-overlay.is-hidden{ opacity:0; pointer-events:none; }
+
+  .circle.is-fullscreen .hotspot-overlay,
+  .pseudo-fs .hotspot-overlay{ opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3); }
 
   /* ====== Popup (nur Bild) ====== */
   .popup{
-    background:transparent;
-    padding:0; border:none; border-radius:0; box-shadow:none;
-    overflow:visible;
-    max-width:90vw; max-height:85vh; z-index:3;
+    background:transparent; padding:0; border:none; border-radius:0; box-shadow:none;
+    overflow:visible; max-width:90vw; max-height:85vh; z-index:3;
   }
   .circle.is-fullscreen .popup{ max-width:90vw; max-height:85vh; }
-  .popup img{
-    display:block; width:auto; height:auto;
-    max-width:100%; max-height:100%; object-fit:contain; border-radius:0;
-  }
+  .popup img{ display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; border-radius:0; }
 
   .fs-exit{
     position:absolute; top:10px; right:10px; z-index:999; display:none;
@@ -160,7 +153,14 @@
   <section class="circle-wrap" aria-label="Interaktives Wimmelbild">
     <div class="circle" id="circle">
       <button id="exitFsBtn" class="fs-exit" type="button" aria-label="Vollbild schließen" title="Schließen">×</button>
+
+      <!-- Viewer -->
       <div id="myContainer" role="application" aria-label="Wimmelbild Viewer"></div>
+
+      <!-- Herz-Overlay (NEU) -->
+      <a class="heart-cta" href="https://plan-g.at/ueber-uns" target="_blank" rel="noopener" aria-label="Über uns">
+        <img src="assets/img/signet_heart.png" alt="" />
+      </a>
     </div>
   </section>
 
@@ -277,17 +277,19 @@
     else { setFullscreenClasses(false); updatePanBounds(false); }
   });
 
-  // Tap → ggf. Vollbild
+  // Tap → ggf. Vollbild + Herz sichtbar halten (Touch-Fallback)
   const containerEl = document.getElementById('myContainer');
   containerEl.addEventListener('touchend', async (e)=>{
     if (e.touches && e.touches.length === 0){
       const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
       if (!alreadyFs){ e.preventDefault(); await ensureFullscreenIfNeeded(); }
+      document.body.classList.add('expanded');
     }
   }, { passive: false });
   containerEl.addEventListener('click', async ()=>{
     const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
     if (!alreadyFs){ await ensureFullscreenIfNeeded(); }
+    document.body.classList.add('expanded');
   });
 
   /* ====== Popups/Hotspots ====== */
