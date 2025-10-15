@@ -54,7 +54,7 @@
 
   #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
-  /* Herz oben rechts (nutzt img/signet_bunt.png) */
+  /* Herz oben rechts (neues Bild & Pfad) */
   .heart-cta{
     position:absolute; top:12px; right:12px; z-index:1000;
     display:block; opacity:1;
@@ -218,32 +218,20 @@
   viewer.addHandler('zoom', applyHotspotScale);
   viewer.addHandler('resize', applyHotspotScale);
   viewer.addHandler('open', ()=>{ applyHotspotScale(); hookOsdFullPageButton(); });
-  setTimeout(hookOsdFullPageButton, 0); // extra Sicherheitsgurt
+  setTimeout(hookOsdFullPageButton, 0); // extra Fallback
 
   /* ====== Vollbild-Logik ====== */
   const circleEl = document.getElementById('circle');
   function supportsFullscreen(){ return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen); }
-  function enterFullscreen(){
-    try{
-      if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
-      if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
-      if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen();
-    }catch(e){ fallbackPseudoFS(true); }
-  }
-  function exitFullscreen(){
-    try{
-      if (document.exitFullscreen) return document.exitFullscreen();
-      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
-      if (document.msExitFullscreen) return document.msExitFullscreen();
-    }catch(e){ fallbackPseudoFS(false); }
-  }
-  function fallbackPseudoFS(on){
-    document.body.classList.toggle('pseudo-fs', on);
-    setFullscreenClasses(on);
-    updatePanBounds(on);
-  }
+  function enterFullscreen(){ if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
+    if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
+    if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen(); }
+  function exitFullscreen(){ if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    if (document.msExitFullscreen) return document.msExitFullscreen(); }
   function setFullscreenClasses(isFs){
     circleEl.classList.toggle('is-fullscreen', isFs);
+    if (!supportsFullscreen()){ document.body.classList.toggle('pseudo-fs', isFs); }
   }
   function updatePanBounds(isFs){
     if (isFs || document.body.classList.contains('pseudo-fs')){
@@ -256,7 +244,6 @@
       viewer.minZoomImageRatio = 1;
     }
   }
-
   document.addEventListener('fullscreenchange', () => {
     const isFs = document.fullscreenElement === circleEl;
     setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale();
@@ -266,7 +253,7 @@
     setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale();
   });
 
-  // Tap auf Bild → ggf. Vollbild
+  // Tap → ggf. Vollbild
   const containerEl = document.getElementById('myContainer');
   containerEl.addEventListener('touchend', async (e)=>{
     if (e.touches && e.touches.length === 0){
@@ -284,65 +271,47 @@
     if (alreadyFs) return Promise.resolve();
     if (supportsFullscreen()){
       return new Promise((resolve)=>{
-        let settled = false;
-        const onChange = ()=>{
-          settled = true;
-          document.removeEventListener('fullscreenchange', onChange);
-          resolve();
-        };
+        const onChange = ()=>{ document.removeEventListener('fullscreenchange', onChange); resolve(); };
         document.addEventListener('fullscreenchange', onChange);
-        const p = enterFullscreen();
-        // Fallback, falls iOS ablehnt:
-        setTimeout(()=>{ if(!settled){ fallbackPseudoFS(true); resolve(); } }, 300);
-        return p;
+        enterFullscreen();
       });
     }
-    fallbackPseudoFS(true);
-    return Promise.resolve();
+    return new Promise((resolve)=>{
+      setFullscreenClasses(true);
+      updatePanBounds(true);
+      resolve();
+    });
   }
 
-  /* === Bestehenden OSD-Button (rechts neben Haus) für Fullscreen EIN/AUS nutzen – auch mobil === */
+  /* === Bestehenden OSD-Button (rechts neben Haus) für Fullscreen EIN/AUS nutzen === */
   function hookOsdFullPageButton(){
     const root = viewer.container || document.getElementById('myContainer');
     if (!root) return;
 
-    // versuche mehrere mögliche Selektoren
-    let btn =
-      root.querySelector('.openseadragon-full-page') ||
-      root.querySelector('.openseadragon-button-fullscreen') ||
-      root.querySelector('[title*="Full"],[title*="Voll"],[title*="Seite"],[aria-label*="Full"]');
-
+    // Button suchen – je nach OSD-Version unterschiedliche Klassen/Titles
+    const btn = root.querySelector('.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]');
     if (!btn || btn.__pgHooked) return;
+    btn.__pgHooked = true;
 
     const handler = (e)=>{
-      // wichtig für Mobile: verhindert OSD-Default und zählt als echte User-Geste
-      if (e) {
-        e.preventDefault && e.preventDefault();
-        e.stopPropagation && e.stopPropagation();
-        e.stopImmediatePropagation && e.stopImmediatePropagation();
-      }
+      // wichtig fürs iPhone: im Capture-Modus + alle Events, Standardverhalten unterbinden
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      e.stopImmediatePropagation?.();
+
       const inFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
       if (inFs){
-        if (supportsFullscreen()) { exitFullscreen(); }
-        else { fallbackPseudoFS(false); }
+        if (supportsFullscreen()) exitFullscreen();
+        else { setFullscreenClasses(false); updatePanBounds(false); }
       } else {
         ensureFullscreenIfNeeded();
       }
-      return false;
     };
 
-    // Desktop + Mobile (iOS): mehrere Events, im Capture-Phase
-    btn.addEventListener('touchend', handler, { passive:false, capture:true });
+    // robust für Desktop & Mobile
+    btn.addEventListener('click',     handler, { capture:true });
+    btn.addEventListener('touchend',  handler, { capture:true, passive:false });
     btn.addEventListener('pointerup', handler, { capture:true });
-    btn.addEventListener('click', handler, { capture:true });
-
-    btn.__pgHooked = true;
-
-    // falls OSD die Controls neu rendert → MutationObserver erneut hooken
-    const mo = new MutationObserver(()=> {
-      if (!root.contains(btn)) { mo.disconnect(); setTimeout(hookOsdFullPageButton, 0); }
-    });
-    mo.observe(root, { childList:true, subtree:true });
   }
 
   /* ====== Popups/Hotspots ====== */
