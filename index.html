@@ -118,7 +118,7 @@
 
     .mobile-shell #myContainerMobile{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
-    .mobile-shell .hotspot-overlay{ width:20px; height:20px; background:var(--hotspot-color); background-size:contain; background-position:center; background-repeat:no-repeat; border:1px solid var(--hotspot-border); border-radius:0px; box-shadow:0 1px 4px rgba(0,0,0,.35); cursor:pointer; touch-action:manipulation; opacity:1; z-index:2; transition:opacity .15s ease; }
+    .mobile-shell .hotspot-overlay{ width:20px; height:20px; background:var(--hotspot-color); background-size:contain; background-position:center; background-repeat:no-repeat; border:1px solid var(--hotspot-border); border-radius:0px; box-shadow:0 1px 4px rgba(0,0,0,.35); cursor:pointer; touch-action:manipulation; opacity:1; z-index:10; pointer-events:auto; transition:opacity .15s ease; }
     .mobile-shell .hotspot-overlay.has-icon{ background-color:transparent; border:0; box-shadow:none; }
     .mobile-shell .hotspot-overlay.is-hidden{ opacity:0; pointer-events:none; }
     .mobile-shell .circle.is-fullscreen .hotspot-overlay,
@@ -253,7 +253,7 @@
             .catch(err => console.error('Error loading XML:', err));
         }
 
-        d_loadHotspots('./src/hotspots.xml');
+        d_viewer.addOnceHandler('open', () => loadHotspots('./src/hotspots.xml'));
       }
     </script>
 
@@ -286,7 +286,7 @@
   </div>
 
   <!-- ========================= MOBILE MARKUP ========================= -->
-  <div class="mobile-shell" aria-hidden="true">
+  <div class="mobile-shell">
     <header class="m-header">
       <img src="img/logo.png" alt="Plan:g – logo" class="m-header__logo" />
       <div class="m-ctas">
@@ -381,10 +381,20 @@
         exitBtn.addEventListener('click', (e)=>{ e.stopPropagation(); if (supportsFullscreen()){ exitFullscreen(); } else { setFullscreenClasses(false); updatePanBounds(false); } });
 
         const containerEl = document.getElementById('myContainerMobile');
-        containerEl.addEventListener('touchend', async (e)=>{ if (e.touches && e.touches.length === 0){ const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs'); if (!alreadyFs){ e.preventDefault(); await ensureFullscreenIfNeeded(); } } }, { passive: false });
-        containerEl.addEventListener('click', async ()=>{ const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs'); if (!alreadyFs){ await ensureFullscreenIfNeeded(); } });
 
-        let openPopupId = null;
+function isFullscreenActive(){
+  return (document.fullscreenElement === circleEl) || (document.webkitFullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
+}
+function requestFsIfNeeded(e){
+  if (isFullscreenActive()) return;
+  if (e){ e.preventDefault?.(); e.stopPropagation?.(); }
+  ensureFullscreenIfNeeded();
+}
+containerEl.addEventListener('pointerup', requestFsIfNeeded, { passive:false });
+containerEl.addEventListener('touchend', requestFsIfNeeded, { passive:false });
+containerEl.addEventListener('click', requestFsIfNeeded, { passive:true });
+
+let openPopupId = null;
         const popupTimers = new Map();
 
         function addOverlay(x, y, id, iconUrl, popupImage, popupText, popupTitle, colorValue, offsetX=0, offsetY=0){
@@ -475,16 +485,24 @@
 
         function focusOn(nx, ny, zoomFactor=1.6){ const ref = new OpenSeadragon.Point(nx, ny); viewer.viewport.panTo(ref, true); viewer.viewport.zoomBy(zoomFactor, ref, true); }
         function ensureFullscreenIfNeeded(){
-          const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-          if (alreadyFs) return Promise.resolve();
-          if (supportsFullscreen()){
-            return new Promise((resolve)=>{ const onChange = ()=>{ document.removeEventListener('fullscreenchange', onChange); resolve(); }; document.addEventListener('fullscreenchange', onChange); enterFullscreen(); });
+  const alreadyFs = (document.fullscreenElement === circleEl) || (document.webkitFullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
+  if (alreadyFs) return Promise.resolve();
+  if (supportsFullscreen()){
+    return new Promise((resolve)=>{
+      const done = ()=>{ document.removeEventListener('fullscreenchange', done); document.removeEventListener('webkitfullscreenchange', done); resolve(); };
+      document.addEventListener('fullscreenchange', done);
+      document.addEventListener('webkitfullscreenchange', done);
+      enterFullscreen();
+    });
+  }
+  return new Promise((resolve)=>{ setFullscreenClasses(true); updatePanBounds(true); resolve(); });
+}; document.addEventListener('fullscreenchange', onChange); enterFullscreen(); });
           }
           return new Promise((resolve)=>{ setFullscreenClasses(true); updatePanBounds(true); resolve(); });
         }
 
         window.addEventListener('orientationchange', () => setTimeout(applyHotspotScale, 50));
-      
+      }
     </script>
   </div>
 
