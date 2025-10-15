@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" xml:lang="DE" xmlns="http://www.w3.org/199199/xhtml">
+<html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -55,9 +55,7 @@
       font-style: normal;
       font-display: swap;
     }
-    .desktop-shell{
-      position: fixed; inset: 0; overflow: hidden; background: var(--bg);
-    }
+    .desktop-shell{ position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
     .desktop-shell .logo-container {
       position: absolute; z-index: 1000; top: 25px; left: 25px; opacity: 0; display: none;
       -webkit-transition: opacity 900ms, display 900ms; transition: opacity 900ms, display 900ms;
@@ -92,9 +90,7 @@
     .desktop-shell .flag.en{ background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
     .desktop-shell .flag.de{ background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
 
-    .desktop-shell .hotspot-overlay{
-      width: 10px; height: 10px; background-size: cover; background-repeat: no-repeat; cursor: pointer; /* clickable */
-    }
+    .desktop-shell .hotspot-overlay{ width: 10px; height: 10px; background-size: cover; background-repeat: no-repeat; cursor: pointer; }
 
     /* ========================= MOBILE STYLES ========================= */
     .mobile-shell .m-header{ padding: calc(env(safe-area-inset-top) + 14px) var(--pad) 16px; }
@@ -103,6 +99,7 @@
     .mobile-shell .cta{
       margin-top:10px; font-weight:700; text-transform:uppercase; font-size:clamp(13px,3.7vw,16px);
       background:var(--green); color:#fff; padding:12px 16px; border-radius:14px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.12);
+      text-decoration:none !important;
     }
     .mobile-shell .cta.square{ border-radius:0; }
     .mobile-shell .cta:active{ transform:scale(.98); }
@@ -140,16 +137,10 @@
     .mobile-shell .flag.en{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
     .mobile-shell .text-link{ color:var(--green); }
     .mobile-shell .m-footer p{ margin:0; font-size:14px; }
-    /* CTA underline fix */
-  .mobile-shell .cta,
-  .mobile-shell .cta:link,
-  .mobile-shell .cta:visited,
-  .mobile-shell .cta:hover,
-  .mobile-shell .cta:active{ text-decoration:none !important; }
 
-  /* Fullscreen background + no scroll bleed */
-  html.fs-on, html.fs-on body{ background:#000 !important; overflow:hidden; }
-</style>
+    /* Fullscreen background + no scroll bleed */
+    html.fs-on, html.fs-on body{ background:#000 !important; overflow:hidden; }
+  </style>
 
   <!-- Matomo (from desktop) -->
   <script type="text/javascript">
@@ -169,7 +160,7 @@
 
 <body>
   <!-- ========================= DESKTOP MARKUP ========================= -->
-  <div class="desktop-shell" aria-hidden="true">
+  <div class="desktop-shell">
     <div id="myContainerDesktop"></div>
 
     <!-- Desktop viewer init -->
@@ -253,7 +244,7 @@
             .catch(err => console.error('Error loading XML:', err));
         }
 
-        d_viewer.addOnceHandler('open', () => loadHotspots('./src/hotspots.xml'));
+        d_loadHotspots('./src/hotspots.xml');
       }
     </script>
 
@@ -356,7 +347,7 @@
           const { BASE, MIN, MAX } = getHotspotSizeParams();
           const z = viewer.viewport.getZoom(true);
           const circleEl = document.getElementById('circle');
-          const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
+          const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs') || (document.webkitFullscreenElement === circleEl);
           const fs = isFs ? 0.98 : 1.0;
           const size = Math.max(MIN, Math.min(MAX, BASE * fs * (0.90 + (z-1)*0.12)));
           document.querySelectorAll('.mobile-shell .hotspot-overlay').forEach(el => { el.style.width = `${size}px`; el.style.height = `${size}px`; });
@@ -370,31 +361,20 @@
         function supportsFullscreen(){ return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen); }
         function enterFullscreen(){ if (circleEl.requestFullscreen) return circleEl.requestFullscreen(); if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen(); if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen(); }
         function exitFullscreen(){ if (document.exitFullscreen) return document.exitFullscreen(); if (document.webkitExitFullscreen) return document.webkitExitFullscreen(); if (document.msExitFullscreen) return document.msExitFullscreen(); }
-        function setFullscreenClasses(isFs){
-    circleEl.classList.toggle('is-fullscreen', isFs);
-    document.documentElement.classList.toggle('fs-on', isFs);
-    if (!supportsFullscreen()){ document.body.classList.toggle('pseudo-fs', isFs); }
-  } }
+        function setFullscreenClasses(isFs){ circleEl.classList.toggle('is-fullscreen', isFs); document.documentElement.classList.toggle('fs-on', isFs); if (!supportsFullscreen()) { document.body.classList.toggle('pseudo-fs', isFs); } }
         document.addEventListener('fullscreenchange', ()=>{ const isFs = document.fullscreenElement === circleEl; setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); });
         document.addEventListener('webkitfullscreenchange', ()=>{ const isFs = document.webkitFullscreenElement === circleEl; setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); });
         function updatePanBounds(isFs){ if (isFs || document.body.classList.contains('pseudo-fs')){ viewer.constrainDuringPan = false; viewer.viewport.setVisibilityRatio(0.2); viewer.minZoomImageRatio = 0.8; } else { viewer.constrainDuringPan = true; viewer.viewport.setVisibilityRatio(0.95); viewer.minZoomImageRatio = 1; } }
         exitBtn.addEventListener('click', (e)=>{ e.stopPropagation(); if (supportsFullscreen()){ exitFullscreen(); } else { setFullscreenClasses(false); updatePanBounds(false); } });
 
         const containerEl = document.getElementById('myContainerMobile');
+        function isFullscreenActive(){ return (document.fullscreenElement === circleEl) || (document.webkitFullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs'); }
+        function requestFsIfNeeded(e){ if (isFullscreenActive()) return; if (e){ e.preventDefault?.(); e.stopPropagation?.(); } ensureFullscreenIfNeeded(); }
+        containerEl.addEventListener('pointerup', requestFsIfNeeded, { passive:false });
+        containerEl.addEventListener('touchend', requestFsIfNeeded, { passive:false });
+        containerEl.addEventListener('click', requestFsIfNeeded, { passive:true });
 
-function isFullscreenActive(){
-  return (document.fullscreenElement === circleEl) || (document.webkitFullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-}
-function requestFsIfNeeded(e){
-  if (isFullscreenActive()) return;
-  if (e){ e.preventDefault?.(); e.stopPropagation?.(); }
-  ensureFullscreenIfNeeded();
-}
-containerEl.addEventListener('pointerup', requestFsIfNeeded, { passive:false });
-containerEl.addEventListener('touchend', requestFsIfNeeded, { passive:false });
-containerEl.addEventListener('click', requestFsIfNeeded, { passive:true });
-
-let openPopupId = null;
+        let openPopupId = null;
         const popupTimers = new Map();
 
         function addOverlay(x, y, id, iconUrl, popupImage, popupText, popupTitle, colorValue, offsetX=0, offsetY=0){
@@ -481,22 +461,19 @@ let openPopupId = null;
             })
             .catch(err => console.error('Error loading XML:', err));
         }
-        loadHotspots('./src/hotspots.xml');
+        viewer.addOnceHandler('open', () => loadHotspots('./src/hotspots.xml'));
 
         function focusOn(nx, ny, zoomFactor=1.6){ const ref = new OpenSeadragon.Point(nx, ny); viewer.viewport.panTo(ref, true); viewer.viewport.zoomBy(zoomFactor, ref, true); }
         function ensureFullscreenIfNeeded(){
-  const alreadyFs = (document.fullscreenElement === circleEl) || (document.webkitFullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-  if (alreadyFs) return Promise.resolve();
-  if (supportsFullscreen()){
-    return new Promise((resolve)=>{
-      const done = ()=>{ document.removeEventListener('fullscreenchange', done); document.removeEventListener('webkitfullscreenchange', done); resolve(); };
-      document.addEventListener('fullscreenchange', done);
-      document.addEventListener('webkitfullscreenchange', done);
-      enterFullscreen();
-    });
-  }
-  return new Promise((resolve)=>{ setFullscreenClasses(true); updatePanBounds(true); resolve(); });
-}; document.addEventListener('fullscreenchange', onChange); enterFullscreen(); });
+          const alreadyFs = (document.fullscreenElement === circleEl) || (document.webkitFullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
+          if (alreadyFs) return Promise.resolve();
+          if (supportsFullscreen()){
+            return new Promise((resolve)=>{
+              const done = ()=>{ document.removeEventListener('fullscreenchange', done); document.removeEventListener('webkitfullscreenchange', done); resolve(); };
+              document.addEventListener('fullscreenchange', done);
+              document.addEventListener('webkitfullscreenchange', done);
+              enterFullscreen();
+            });
           }
           return new Promise((resolve)=>{ setFullscreenClasses(true); updatePanBounds(true); resolve(); });
         }
