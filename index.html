@@ -49,9 +49,9 @@
 
   #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
-  /* ====== Hotspots ====== */
+  /* ====== Hotspots (kleiner) ====== */
   .hotspot-overlay{
-    width:24px; height:24px;
+    width:20px; height:20px; /* kleiner gemacht */
     background:var(--hotspot-color);
     background-size:contain; background-position:center; background-repeat:no-repeat;
     border:1px solid var(--hotspot-border);
@@ -66,30 +66,30 @@
   .circle.is-fullscreen .hotspot-overlay,
   .pseudo-fs .hotspot-overlay{ opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3); }
 
-  /* ====== Popup (nur das Bild, ohne Rahmen, ohne Cropping) ====== */
+  /* ====== Popup (nur Bild, etwas kleiner als Viewport) ====== */
   .popup{
-    background:transparent;     /* kein Rahmen */
-    padding:0;                  /* kein Innenabstand */
+    background:transparent;
+    padding:0;
     border:none;
-    border-radius:0;            /* keine runden Ecken -> nichts wird abgeschnitten */
+    border-radius:0;
     box-shadow:none;
-    overflow:visible;           /* wichtig: Ecken bleiben sichtbar */
-    max-width:calc(100vw - 8px);
-    max-height:calc(100vh - 8px);
+    overflow:visible;           /* nichts abschneiden */
+    max-width:90vw;             /* bewusst etwas kleiner */
+    max-height:85vh;
     z-index:3;
   }
   .circle.is-fullscreen .popup{
-    max-width:calc(100vw - 8px);
-    max-height:calc(100vh - 8px);
+    max-width:90vw;
+    max-height:85vh;
   }
   .popup img{
     display:block;
-    width:auto;                 /* Originalgröße */
+    width:auto;                 /* Originalverhältnis */
     height:auto;
-    max-width:100%;             /* aber niemals größer als der Bildschirm */
-    max-height:100vh;           /* vollständige Höhe nutzbar */
+    max-width:100%;
+    max-height:100%;
     object-fit:contain;         /* nie beschneiden */
-    border-radius:0;            /* keine Ecken kappen */
+    border-radius:0;
   }
 
   .fs-exit{
@@ -192,8 +192,8 @@
 
   /* ====== Responsive Hotspot-Größe ====== */
   function getHotspotSizeParams(){
-    if (window.matchMedia('(max-width: 640px)').matches) return { BASE: 16, MIN: 12, MAX: 20 };
-    return { BASE: 22, MIN: 16, MAX: 30 };
+    if (window.matchMedia('(max-width: 640px)').matches) return { BASE: 14, MIN: 10, MAX: 18 };
+    return { BASE: 20, MIN: 14, MAX: 24 };
   }
   function applyHotspotScale(){
     const { BASE, MIN, MAX } = getHotspotSizeParams();
@@ -215,11 +215,24 @@
   const circleEl = document.getElementById('circle');
   const exitBtn  = document.getElementById('exitFsBtn');
   function supportsFullscreen(){ return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen); }
-  function enterFullscreen(){ if (circleEl.requestFullscreen) return circleEl.requestFullscreen(); if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen(); if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen(); }
-  function exitFullscreen(){ if (document.exitFullscreen) return document.exitFullscreen(); if (document.webkitExitFullscreen) return document.webkitExitFullscreen(); if (document.msExitFullscreen) return document.msExitFullscreen(); }
-  function setFullscreenClasses(isFs){ circleEl.classList.toggle('is-fullscreen', isFs); if (!supportsFullscreen()){ document.body.classList.toggle('pseudo-fs', isFs); } }
-  document.addEventListener('fullscreenchange', () => { const isFs = document.fullscreenElement === circleEl; setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); });
-  document.addEventListener('webkitfullscreenchange', () => { const isFs = document.webkitFullscreenElement === circleEl; setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); });
+  function enterFullscreen(){ if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
+    if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
+    if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen(); }
+  function exitFullscreen(){ if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    if (document.msExitFullscreen) return document.msExitFullscreen(); }
+  function setFullscreenClasses(isFs){
+    circleEl.classList.toggle('is-fullscreen', isFs);
+    if (!supportsFullscreen()){ document.body.classList.toggle('pseudo-fs', isFs); }
+  }
+  document.addEventListener('fullscreenchange', () => {
+    const isFs = document.fullscreenElement === circleEl;
+    setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale();
+  });
+  document.addEventListener('webkitfullscreenchange', () => {
+    const isFs = document.webkitFullscreenElement === circleEl;
+    setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale();
+  });
   function updatePanBounds(isFs){
     if (isFs || document.body.classList.contains('pseudo-fs')){
       viewer.constrainDuringPan = false;
@@ -231,7 +244,11 @@
       viewer.minZoomImageRatio = 1;
     }
   }
-  exitBtn.addEventListener('click', (e)=>{ e.stopPropagation(); if (supportsFullscreen()){ exitFullscreen(); } else { setFullscreenClasses(false); updatePanBounds(false); } });
+  exitBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    if (supportsFullscreen()){ exitFullscreen(); }
+    else { setFullscreenClasses(false); updatePanBounds(false); }
+  });
 
   // Tap → ggf. Vollbild
   const containerEl = document.getElementById('myContainer');
@@ -264,13 +281,10 @@
       overlay.style.backgroundImage = `url("${finalIcon}")`;
     } else if (colorValue) {
       overlay.style.setProperty("--hotspot-color", colorValue);
-    } else {
-      overlay.style.backgroundImage = "none";
     }
 
     const open = async (e) => {
-      e.stopPropagation();
-      e.preventDefault?.();
+      e.stopPropagation(); e.preventDefault?.();
       await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlay, offsetX, offsetY);
     };
     overlay.addEventListener("touchend", open, { passive: false });
@@ -297,7 +311,7 @@
     return `${POPUPS_DIRS[0]}/${name}`;
   }
 
-  // Nur Bild rendern – nichts beschneiden
+  // Nur Bild rendern – leicht kleiner, nie beschnitten
   function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers=false, offsetX=0, offsetY=0){
     if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
     if (document.getElementById(`popup-${id}`)) return;
@@ -305,7 +319,6 @@
     if (overlayEl) overlayEl.classList.add('is-hidden');
 
     const imgSrc = resolvePopupSrc(popupImage);
-
     const popup = document.createElement("div");
     popup.className = "popup";
     popup.id = `popup-${id}`;
@@ -313,9 +326,7 @@
     popup.innerHTML = `${imgSrc ? `<img src="${imgSrc}" alt="" />` : ``}`;
     popup.addEventListener('click', e => e.stopPropagation());
 
-    if (offsetX || offsetY) {
-      popup.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-    }
+    if (offsetX || offsetY) popup.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
 
     viewer.addOverlay({
       element: popup,
@@ -325,8 +336,7 @@
 
     openPopupId = id;
 
-    // Auto-Close nach 10s
-    if (popupTimers.has(id)) { clearTimeout(popupTimers.get(id)); }
+    if (popupTimers.has(id)) clearTimeout(popupTimers.get(id));
     const t = setTimeout(()=>{ closePopup(id); }, 10000);
     popupTimers.set(id, t);
   }
@@ -367,8 +377,8 @@
                 node.getAttribute("IMAGE")    ||
                 "";
 
-          const popupText  = "";   // bewusst leer
-          const popupTitle = "";   // bewusst leer
+          const popupText  = "";   // nur Bild
+          const popupTitle = "";   // nur Bild
 
           const colorValue =
                 node.getAttribute("COLOR")    ||
