@@ -14,8 +14,6 @@
     --accent:#870184;
     --bg:#f3f3f3;
     --pad: clamp(14px, 4vw, 20px);
-
-    /* Fallback nur, falls KEIN Icon genutzt wird */
     --hotspot-color:#ffffff;
     --hotspot-border:rgba(0,0,0,.25);
   }
@@ -53,9 +51,9 @@
 
   /* ====== Hotspots ====== */
   .hotspot-overlay{
-    width: 24px; height: 24px;
-    background: var(--hotspot-color);
-    background-size: contain; background-position:center; background-repeat:no-repeat;
+    width:24px; height:24px;
+    background:var(--hotspot-color);
+    background-size:contain; background-position:center; background-repeat:no-repeat;
     border:1px solid var(--hotspot-border);
     border-radius:999px;
     box-shadow:0 1px 4px rgba(0,0,0,.35);
@@ -68,30 +66,30 @@
   .circle.is-fullscreen .hotspot-overlay,
   .pseudo-fs .hotspot-overlay{ opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3); }
 
-  /* ====== Popup (nur Bild) ====== */
+  /* ====== Popup (nur das Bild, ohne Rahmen, ohne Cropping) ====== */
   .popup{
-    background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.25);
-    overflow:hidden;
-    /* Popup darf fast die ganze Breite/Höhe nutzen */
-    max-width: calc(100vw - 16px);
-    max-height: calc(100vh - 16px);
+    background:transparent;     /* kein Rahmen */
+    padding:0;                  /* kein Innenabstand */
+    border:none;
+    border-radius:0;            /* keine runden Ecken -> nichts wird abgeschnitten */
+    box-shadow:none;
+    overflow:visible;           /* wichtig: Ecken bleiben sichtbar */
+    max-width:calc(100vw - 8px);
+    max-height:calc(100vh - 8px);
     z-index:3;
   }
   .circle.is-fullscreen .popup{
-    max-width: calc(100vw - 24px);
-    max-height: calc(100vh - 24px);
+    max-width:calc(100vw - 8px);
+    max-height:calc(100vh - 8px);
   }
-  /* Bild in Originalgröße, aber nie größer als der Viewport */
   .popup img{
     display:block;
-    width:auto;
+    width:auto;                 /* Originalgröße */
     height:auto;
-    max-width:100%;
-    max-height:80vh;      /* außerhalb Vollbild */
-    object-fit:contain;   /* nichts wird abgeschnitten */
-  }
-  .circle.is-fullscreen .popup img{
-    max-height:88vh;      /* im Vollbild etwas höher ausnutzen */
+    max-width:100%;             /* aber niemals größer als der Bildschirm */
+    max-height:100vh;           /* vollständige Höhe nutzbar */
+    object-fit:contain;         /* nie beschneiden */
+    border-radius:0;            /* keine Ecken kappen */
   }
 
   .fs-exit{
@@ -149,12 +147,12 @@
   </footer>
 
 <script>
-  /* ====== Pfade zu deinen Assets ====== */
+  /* ====== Pfade ====== */
   const ASSETS_BASE = "./Assets";
-  const ICON_DEFAULT = `${ASSETS_BASE}/button-wim.png`;      // gelber Desktop-Button
+  const ICON_DEFAULT = `${ASSETS_BASE}/button-wim.png`;
   const POPUPS_DIRS = [`${ASSETS_BASE}/popups`, `${ASSETS_BASE}/popups-2`];
 
-  // OpenSeadragon – Mobile tuned
+  /* ====== OpenSeadragon ====== */
   const viewer = OpenSeadragon({
     id: "myContainer",
     prefixUrl: "openseadragon/images/",
@@ -179,13 +177,10 @@
     constrainDuringPan: true,
     minZoomImageRatio: 1,
     maxZoomPixelRatio: 2.0,
-    maxImageCacheCount: 60,
-    imageLoaderLimit: 2,
-    immediateRender: true,
-    preserveImageSizeOnResize: true
+    immediateRender: true
   });
 
-  // --- Größen/Koordinaten ---
+  /* ====== Größen/Koordinaten ====== */
   const SOURCE_W = 5787, SOURCE_H = 7722;
   const AUTHOR_W = 14344, AUTHOR_H = 19140;
   const Y_EXTRA_SCALE = 1.3348;
@@ -195,21 +190,17 @@
     return { nx, ny };
   }
 
-  // --- Responsive Hotspot-Größen ---
+  /* ====== Responsive Hotspot-Größe ====== */
   function getHotspotSizeParams(){
-    if (window.matchMedia('(max-width: 640px)').matches) {
-      return { BASE: 16, MIN: 12, MAX: 20 };
-    }
+    if (window.matchMedia('(max-width: 640px)').matches) return { BASE: 16, MIN: 12, MAX: 20 };
     return { BASE: 22, MIN: 16, MAX: 30 };
   }
-
   function applyHotspotScale(){
     const { BASE, MIN, MAX } = getHotspotSizeParams();
     const z = viewer.viewport.getZoom(true);
     const circleEl = document.getElementById('circle');
     const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
     const fs = isFs ? 0.98 : 1.0;
-
     const size = Math.max(MIN, Math.min(MAX, BASE * fs * (0.90 + (z-1)*0.12)));
     document.querySelectorAll('.hotspot-overlay').forEach(el => {
       el.style.width  = `${size}px`;
@@ -220,41 +211,15 @@
   viewer.addHandler('resize', applyHotspotScale);
   viewer.addHandler('open', ()=>{ applyHotspotScale(); });
 
-  // --- Vollbild-Logik ---
+  /* ====== Vollbild-Logik ====== */
   const circleEl = document.getElementById('circle');
   const exitBtn  = document.getElementById('exitFsBtn');
-
-  function supportsFullscreen(){
-    return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen);
-  }
-  function enterFullscreen(){
-    if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
-    if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
-    if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen();
-  }
-  function exitFullscreen(){
-    if (document.exitFullscreen) return document.exitFullscreen();
-    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
-    if (document.msExitFullscreen) return document.msExitFullscreen();
-  }
-  function setFullscreenClasses(isFs){
-    circleEl.classList.toggle('is-fullscreen', isFs);
-    if (!supportsFullscreen()){
-      document.body.classList.toggle('pseudo-fs', isFs);
-    }
-  }
-  document.addEventListener('fullscreenchange', () => {
-    const isFs = document.fullscreenElement === circleEl;
-    setFullscreenClasses(isFs);
-    updatePanBounds(isFs);
-    applyHotspotScale();
-  });
-  document.addEventListener('webkitfullscreenchange', () => {
-    const isFs = document.webkitFullscreenElement === circleEl;
-    setFullscreenClasses(isFs);
-    updatePanBounds(isFs);
-    applyHotspotScale();
-  });
+  function supportsFullscreen(){ return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen); }
+  function enterFullscreen(){ if (circleEl.requestFullscreen) return circleEl.requestFullscreen(); if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen(); if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen(); }
+  function exitFullscreen(){ if (document.exitFullscreen) return document.exitFullscreen(); if (document.webkitExitFullscreen) return document.webkitExitFullscreen(); if (document.msExitFullscreen) return document.msExitFullscreen(); }
+  function setFullscreenClasses(isFs){ circleEl.classList.toggle('is-fullscreen', isFs); if (!supportsFullscreen()){ document.body.classList.toggle('pseudo-fs', isFs); } }
+  document.addEventListener('fullscreenchange', () => { const isFs = document.fullscreenElement === circleEl; setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); });
+  document.addEventListener('webkitfullscreenchange', () => { const isFs = document.webkitFullscreenElement === circleEl; setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); });
   function updatePanBounds(isFs){
     if (isFs || document.body.classList.contains('pseudo-fs')){
       viewer.constrainDuringPan = false;
@@ -266,13 +231,9 @@
       viewer.minZoomImageRatio = 1;
     }
   }
-  exitBtn.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    if (supportsFullscreen()){ exitFullscreen(); }
-    else { setFullscreenClasses(false); updatePanBounds(false); }
-  });
+  exitBtn.addEventListener('click', (e)=>{ e.stopPropagation(); if (supportsFullscreen()){ exitFullscreen(); } else { setFullscreenClasses(false); updatePanBounds(false); } });
 
-  // ==== Tap → ggf. Vollbild ====
+  // Tap → ggf. Vollbild
   const containerEl = document.getElementById('myContainer');
   containerEl.addEventListener('touchend', async (e)=>{
     if (e.touches && e.touches.length === 0){
@@ -285,7 +246,7 @@
     if (!alreadyFs){ await ensureFullscreenIfNeeded(); }
   });
 
-  // ===== Popups/Hotspots =====
+  /* ====== Popups/Hotspots ====== */
   let openPopupId = null;
   const popupTimers = new Map(); // id -> timeout
 
@@ -298,7 +259,6 @@
     overlay.setAttribute("data-id", id);
 
     const finalIcon = iconUrl || ICON_DEFAULT;
-
     if (finalIcon) {
       overlay.classList.add("has-icon");
       overlay.style.backgroundImage = `url("${finalIcon}")`;
@@ -337,7 +297,7 @@
     return `${POPUPS_DIRS[0]}/${name}`;
   }
 
-  // Nur Bild rendern – kein Text/Title-Block
+  // Nur Bild rendern – nichts beschneiden
   function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers=false, offsetX=0, offsetY=0){
     if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
     if (document.getElementById(`popup-${id}`)) return;
@@ -364,8 +324,8 @@
     });
 
     openPopupId = id;
-    applyHotspotScale();
 
+    // Auto-Close nach 10s
     if (popupTimers.has(id)) { clearTimeout(popupTimers.get(id)); }
     const t = setTimeout(()=>{ closePopup(id); }, 10000);
     popupTimers.set(id, t);
@@ -393,7 +353,6 @@
           const y = parseFloat(node.getAttribute("Y"));
           const id = node.getAttribute("ID");
 
-          // Icon-Attribut inkl. MEDIA unterstützen
           const iconUrl =
                 node.getAttribute("ICON")     ||
                 node.getAttribute("ICONURL")  ||
@@ -408,8 +367,8 @@
                 node.getAttribute("IMAGE")    ||
                 "";
 
-          const popupText  = "";   // bewusst leer: nur Bild
-          const popupTitle = "";   // bewusst leer: nur Bild
+          const popupText  = "";   // bewusst leer
+          const popupTitle = "";   // bewusst leer
 
           const colorValue =
                 node.getAttribute("COLOR")    ||
@@ -431,7 +390,7 @@
   }
   loadHotspots("./src/hotspots.xml");
 
-  // ===== Helper =====
+  // Helper
   function focusOn(nx, ny, zoomFactor=1.6){
     const ref = new OpenSeadragon.Point(nx, ny);
     viewer.viewport.panTo(ref, true);
@@ -454,7 +413,6 @@
     });
   }
 
-  // bei Orientation-/Viewport-Wechsel neu skalieren
   window.addEventListener('orientationchange', () => setTimeout(applyHotspotScale, 50));
 </script>
 </body>
