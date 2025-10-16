@@ -112,7 +112,7 @@
       z-index:1;
     }
 
-    /* Herz oben rechts (neues Bild & Pfad) */
+    /* Herz oben rechts */
     .heart-cta{
       position:absolute;
       top:12px;
@@ -127,7 +127,7 @@
       height:auto;
     }
 
-    /* Hotspots: nur runde Icons, kein Quadrat/Highlight */
+    /* Hotspots */
     .hotspot-overlay{
       width:20px;
       height:20px;
@@ -435,39 +435,52 @@
       });
     }
 
-    /* === Bestehenden OSD-Button (rechts neben Haus) für Fullscreen EIN/AUS nutzen === */
+    /* === Fullscreen-Button neben dem Haus: Touch & Click zuverlässig toggeln === */
     function hookOsdFullPageButton(){
       const root = viewer.container || document.getElementById("myContainer");
       if (!root) return;
 
-      // Button je nach OSD-Version: unterschiedliche Klassen/Titles
-      const btn = root.querySelector('.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]');
+      const btn = root.querySelector(
+        '.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]'
+      );
       if (!btn || btn.__pgHooked) return;
 
       btn.__pgHooked = true;
 
+      btn.style.touchAction = 'manipulation';
+      btn.style.webkitTapHighlightColor = 'rgba(0,0,0,0)';
+
       const handler = (e) => {
-        // wichtig fürs iPhone: im Capture-Modus + alle Events, Standardverhalten unterbinden
         e.preventDefault?.();
         e.stopPropagation?.();
         e.stopImmediatePropagation?.();
 
-        const inFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
+        const inFs =
+          (document.fullscreenElement === circleEl) ||
+          document.body.classList.contains("pseudo-fs");
+
         if (inFs){
-          if (supportsFullscreen()) exitFullscreen();
-          else {
+          if (supportsFullscreen()) {
+            exitFullscreen();
+          } else {
             setFullscreenClasses(false);
             updatePanBounds(false);
+            applyHotspotScale();
           }
         } else {
-          ensureFullscreenIfNeeded();
+          ensureFullscreenIfNeeded().then(() => {
+            applyHotspotScale();
+          });
         }
       };
 
-      // robust für Desktop & Mobile
-      btn.addEventListener("click", handler, { capture: true });
-      btn.addEventListener("touchend", handler, { capture: true, passive: false });
-      btn.addEventListener("pointerup", handler, { capture: true });
+      const optsTouch = { capture: true, passive: false };
+      const optsPointer = { capture: true };
+
+      btn.addEventListener("touchstart", handler, optsTouch);
+      btn.addEventListener("touchend", handler, optsTouch);
+      btn.addEventListener("pointerup", handler, optsPointer);
+      btn.addEventListener("click", handler, optsPointer);
     }
 
     /* ====== Popups/Hotspots ====== */
@@ -523,7 +536,7 @@
       return `${POPUPS_DIRS[0]}/${name}`;
     }
 
-    // Nur Bild rendern – leicht kleiner, nie beschnitten
+    // Nur Bild rendern
     function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers = false, offsetX = 0, offsetY = 0){
       if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
       if (document.getElementById(`popup-${id}`)) return;
@@ -580,7 +593,7 @@
             const node = nodes[i];
             const x = parseFloat(node.getAttribute("X"));
             const y = parseFloat(node.getAttribute("Y"));
-            const id = node.getAttribute("ID");
+            const id = node.getAttribute("ID"); /* <-- FIX HIER */
 
             const iconUrl =
               node.getAttribute("ICON") ||
