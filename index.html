@@ -224,6 +224,19 @@
     }
     .text-link{ color:var(--green); }
     .m-footer p{ margin:0; font-size:14px; }
+
+    /* === Neues Icon-Styling für den OSD-Fullscreen-Button === */
+    .osd-exitfs-btn{
+      width: clamp(28px, 6vw, 40px);
+      height: clamp(28px, 6vw, 40px);
+      display:inline-block;
+      line-height:0;
+    }
+    .osd-exitfs-btn img{
+      width:100%;
+      height:100%;
+      display:block;
+    }
   </style>
 </head>
 
@@ -435,19 +448,40 @@
       });
     }
 
-    /* === Bestehenden OSD-Button (rechts neben Haus) für Fullscreen EIN/AUS nutzen === */
+    /* === Button neben dem Haus: Icon ersetzen & Fullscreen togglen === */
     function hookOsdFullPageButton(){
       const root = viewer.container || document.getElementById("myContainer");
       if (!root) return;
 
       // Button je nach OSD-Version: unterschiedliche Klassen/Titles
-      const btn = root.querySelector('.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]');
+      const btn = root.querySelector(
+        '.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]'
+      );
       if (!btn || btn.__pgHooked) return;
 
       btn.__pgHooked = true;
 
+      // 1) Standard-Styles und evtl. vorhandene Kinder entfernen
+      btn.style.background = "transparent";
+      btn.style.border = "0";
+      btn.style.padding = "0";
+      while (btn.firstChild) btn.removeChild(btn.firstChild);
+
+      // 2) Unser Bild einsetzen
+      const img = document.createElement("img");
+      img.src = "openseadragon/images/fullpage_grouphover.png";
+      img.alt = "Vollbild umschalten";
+      img.decoding = "async";
+      img.loading = "eager";
+
+      const wrap = document.createElement("span");
+      wrap.className = "osd-exitfs-btn";
+      wrap.appendChild(img);
+      btn.appendChild(wrap);
+      btn.setAttribute("title", "Vollbild umschalten");
+
+      // 3) Verhalten: in FS → raus, sonst → rein
       const handler = (e) => {
-        // wichtig fürs iPhone: im Capture-Modus + alle Events, Standardverhalten unterbinden
         e.preventDefault?.();
         e.stopPropagation?.();
         e.stopImmediatePropagation?.();
@@ -464,7 +498,7 @@
         }
       };
 
-      // robust für Desktop & Mobile
+      // Robust für Desktop & Mobile
       btn.addEventListener("click", handler, { capture: true });
       btn.addEventListener("touchend", handler, { capture: true, passive: false });
       btn.addEventListener("pointerup", handler, { capture: true });
