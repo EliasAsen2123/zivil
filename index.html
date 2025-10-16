@@ -207,7 +207,7 @@
     const { BASE, MIN, MAX } = getHotspotSizeParams();
     const z = viewer.viewport.getZoom(true);
     const circleEl = document.getElementById('circle');
-    const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
+    const isFs = isFullscreen();
     const fs = isFs ? 0.98 : 1.0;
     const size = Math.max(MIN, Math.min(MAX, BASE * fs * (0.90 + (z-1)*0.12)));
     document.querySelectorAll('.hotspot-overlay').forEach(el => {
@@ -220,15 +220,27 @@
   viewer.addHandler('open', ()=>{ applyHotspotScale(); hookOsdFullPageButton(); });
   setTimeout(hookOsdFullPageButton, 0); // extra Fallback
 
-  /* ====== Vollbild-Logik ====== */
+  /* ====== Vollbild-Logik (vereinheitlicht) ====== */
   const circleEl = document.getElementById('circle');
-  function supportsFullscreen(){ return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen); }
-  function enterFullscreen(){ if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
+
+  function supportsFullscreen(){
+    return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen);
+  }
+  function isFullscreen(){
+    return (document.fullscreenElement === circleEl) ||
+           (document.webkitFullscreenElement === circleEl) ||
+           document.body.classList.contains('pseudo-fs');
+  }
+  function enterFullscreen(){
+    if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
     if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
-    if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen(); }
-  function exitFullscreen(){ if (document.exitFullscreen) return document.exitFullscreen();
+    if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen();
+  }
+  function exitFullscreen(){
+    if (document.exitFullscreen) return document.exitFullscreen();
     if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
-    if (document.msExitFullscreen) return document.msExitFullscreen(); }
+    if (document.msExitFullscreen) return document.msExitFullscreen();
+  }
   function setFullscreenClasses(isFs){
     circleEl.classList.toggle('is-fullscreen', isFs);
     if (!supportsFullscreen()){ document.body.classList.toggle('pseudo-fs', isFs); }
@@ -244,46 +256,47 @@
       viewer.minZoomImageRatio = 1;
     }
   }
+
   document.addEventListener('fullscreenchange', () => {
-    const isFs = document.fullscreenElement === circleEl;
-    setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale();
+    const fs = (document.fullscreenElement === circleEl);
+    setFullscreenClasses(fs); updatePanBounds(fs); applyHotspotScale();
   });
   document.addEventListener('webkitfullscreenchange', () => {
-    const isFs = document.webkitFullscreenElement === circleEl;
-    setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale();
+    const fs = (document.webkitFullscreenElement === circleEl);
+    setFullscreenClasses(fs); updatePanBounds(fs); applyHotspotScale();
   });
 
-  // Tap → ggf. Vollbild
-  const containerEl = document.getElementById('myContainer');
-  containerEl.addEventListener('touchend', async (e)=>{
-    if (e.touches && e.touches.length === 0){
-      const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-      if (!alreadyFs){ e.preventDefault(); await ensureFullscreenIfNeeded(); }
-    }
-  }, { passive: false });
-  containerEl.addEventListener('click', async ()=>{
-    const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-    if (!alreadyFs){ await ensureFullscreenIfNeeded(); }
-  });
-
-  function ensureFullscreenIfNeeded(){
-    const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-    if (alreadyFs) return Promise.resolve();
+  async function ensureFullscreenIfNeeded(){
+    if (isFullscreen()) return Promise.resolve();
     if (supportsFullscreen()){
       return new Promise((resolve)=>{
-        const onChange = ()=>{ document.removeEventListener('fullscreenchange', onChange); resolve(); };
+        const onChange = ()=>{
+          document.removeEventListener('fullscreenchange', onChange);
+          document.removeEventListener('webkitfullscreenchange', onChange);
+          resolve();
+        };
         document.addEventListener('fullscreenchange', onChange);
+        document.addEventListener('webkitfullscreenchange', onChange);
         enterFullscreen();
       });
     }
-    return new Promise((resolve)=>{
-      setFullscreenClasses(true);
-      updatePanBounds(true);
-      resolve();
-    });
+    setFullscreenClasses(true);
+    updatePanBounds(true);
+    return Promise.resolve();
   }
 
-  /* === Bestehenden OSD-Button (rechts neben Haus) für Fullscreen EIN/AUS nutzen === */
+  // Tap/Klick → ggf. Vollbild
+  const containerEl = document.getElementById('myContainer');
+  containerEl.addEventListener('touchend', async (e)=>{
+    if (e.touches && e.touches.length === 0){
+      if (!isFullscreen()){ e.preventDefault(); await ensureFullscreenIfNeeded(); }
+    }
+  }, { passive: false });
+  containerEl.addEventListener('click', async ()=>{
+    if (!isFullscreen()){ await ensureFullscreenIfNeeded(); }
+  });
+
+  /* === OSD-Button (rechts neben Haus) für Fullscreen EIN/AUS === */
   function hookOsdFullPageButton(){
     const root = viewer.container || document.getElementById('myContainer');
     if (!root) return;
@@ -299,8 +312,7 @@
       e.stopPropagation?.();
       e.stopImmediatePropagation?.();
 
-      const inFs = (document.fullscreenElement === circleEl) || document.body.classList.contains('pseudo-fs');
-      if (inFs){
+      if (isFullscreen()){
         if (supportsFullscreen()) exitFullscreen();
         else { setFullscreenClasses(false); updatePanBounds(false); }
       } else {
