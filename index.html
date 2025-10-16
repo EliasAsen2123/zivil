@@ -224,25 +224,6 @@
     }
     .text-link{ color:var(--green); }
     .m-footer p{ margin:0; font-size:14px; }
-
-    /* eigener Mobile-Fullscreen-Button (failsafe) */
-    .btn-full {
-      position:absolute;
-      right:12px;
-      bottom:12px;
-      z-index:1001;
-      border:0;
-      background:rgba(0,0,0,.55);
-      color:#fff;
-      font-weight:600;
-      padding:10px 12px;
-      border-radius:12px;
-      -webkit-tap-highlight-color: transparent;
-      touch-action:manipulation;
-      line-height:1;
-      font-size:14px;
-    }
-    .btn-full:active { transform: scale(.98); }
   </style>
 </head>
 
@@ -273,9 +254,6 @@
       <a class="heart-cta" href="https://plan-g.at/ueber-uns" target="_blank" rel="noopener" aria-label="Über uns">
         <img src="img/signet_bunt.png" alt="" />
       </a>
-
-      <!-- eigener Fullscreen-Failsafe-Button -->
-      <button id="btn-full" class="btn-full" aria-label="Vollbild umschalten">Vollbild</button>
     </div>
   </section>
 
@@ -327,9 +305,8 @@
     });
 
     /* ====== DOM-Refs ====== */
-    const circleEl   = document.getElementById("circle");
-    const containerEl= document.getElementById("myContainer");
-    const btnFull    = document.getElementById("btn-full");
+    const circleEl = document.getElementById("circle");
+    const containerEl = document.getElementById("myContainer");
 
     /* ====== Größen/Koordinaten ====== */
     const SOURCE_W = 5787, SOURCE_H = 7722;
@@ -351,7 +328,7 @@
     function applyHotspotScale(){
       const { BASE, MIN, MAX } = getHotspotSizeParams();
       const z = viewer.viewport.getZoom(true);
-      const isFs = viewer.isFullScreen && viewer.isFullScreen() || viewer.isFullPage && viewer.isFullPage() || document.body.classList.contains("pseudo-fs");
+      const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
       const fs = isFs ? 0.98 : 1.0;
       const size = Math.max(MIN, Math.min(MAX, BASE * fs * (0.90 + (z - 1) * 0.12)));
       document.querySelectorAll(".hotspot-overlay").forEach(el => {
@@ -368,39 +345,32 @@
     });
     setTimeout(hookOsdFullPageButton, 0); // extra Fallback
 
-    /* ====== Vollbild-Logik (OSD-API-first, mit Mobile-Fallback) ====== */
-    function supportsBrowserFullscreen(){
-      return !!OpenSeadragon.supportsFullScreen;
+    /* ====== Vollbild-Logik ====== */
+    function supportsFullscreen(){
+      return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen);
     }
 
-    function toggleFullscreen(){
-      // bevorzugt OSD-API (managt auch Controls & CSS intern)
-      if (supportsBrowserFullscreen()) {
-        viewer.setFullScreen(!viewer.isFullScreen());
-      } else {
-        // Fallback: FullPage (funktioniert auf iOS Safari)
-        viewer.setFullPage(!viewer.isFullPage());
-      }
+    function enterFullscreen(){
+      if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
+      if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
+      if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen();
     }
 
-    // Klassen/Bounds/Scroll sperren konsistent halten
-    function setFullscreenClassesByState(){
-      const isFs = (viewer.isFullScreen && viewer.isFullScreen()) || (viewer.isFullPage && viewer.isFullPage());
+    function exitFullscreen(){
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+      if (document.msExitFullscreen) return document.msExitFullscreen();
+    }
+
+    function setFullscreenClasses(isFs){
       circleEl.classList.toggle("is-fullscreen", isFs);
-      if (viewer.isFullPage && viewer.isFullPage()) {
-        document.documentElement.style.overflow = "hidden";
-        document.body.style.overflow = "hidden";
-        document.body.classList.add("pseudo-fs");
-      } else {
-        document.documentElement.style.overflow = "";
-        document.body.style.overflow = "";
-        document.body.classList.remove("pseudo-fs");
+      if (!supportsFullscreen()){
+        document.body.classList.toggle("pseudo-fs", isFs);
       }
     }
 
-    function updatePanBoundsByState(){
-      const isFs = (viewer.isFullScreen && viewer.isFullScreen()) || (viewer.isFullPage && viewer.isFullPage());
-      if (isFs){
+    function updatePanBounds(isFs){
+      if (isFs || document.body.classList.contains("pseudo-fs")){
         viewer.constrainDuringPan = false;
         viewer.viewport.setVisibilityRatio(0.2);
         viewer.minZoomImageRatio = 0.8;
@@ -411,56 +381,93 @@
       }
     }
 
-    // OSD Events → UI syncen
-    viewer.addHandler('full-screen', () => {
-      setFullscreenClassesByState();
-      updatePanBoundsByState();
-      applyHotspotScale();
-    });
-    viewer.addHandler('full-page', () => {
-      setFullscreenClassesByState();
-      updatePanBoundsByState();
+    document.addEventListener("fullscreenchange", () => {
+      const isFs = document.fullscreenElement === circleEl;
+      setFullscreenClasses(isFs);
+      updatePanBounds(isFs);
       applyHotspotScale();
     });
 
-    // Container-Tap/Klick → beim ersten Tap Vollbild aktivieren (Mobile UX)
-    const requestFsIfNotActive = (e) => {
-      const active = (viewer.isFullScreen && viewer.isFullScreen()) || (viewer.isFullPage && viewer.isFullPage());
-      if (!active) {
-        e?.preventDefault?.();
-        toggleFullscreen();
+    document.addEventListener("webkitfullscreenchange", () => {
+      const isFs = document.webkitFullscreenElement === circleEl;
+      setFullscreenClasses(isFs);
+      updatePanBounds(isFs);
+      applyHotspotScale();
+    });
+
+    // Tap/Click → ggf. Vollbild
+    containerEl.addEventListener("touchend", async (e) => {
+      if (e.touches && e.touches.length === 0){
+        const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
+        if (!alreadyFs){
+          e.preventDefault();
+          await ensureFullscreenIfNeeded();
+        }
       }
-    };
-    containerEl.addEventListener("touchend", requestFsIfNotActive, { passive:false });
-    containerEl.addEventListener("click",    requestFsIfNotActive);
+    }, { passive: false });
 
-    // eigener Button (failsafe, hat höhere z-index als Canvas)
-    ['click','touchend','pointerup'].forEach(evt => {
-      btnFull.addEventListener(evt, (e)=>{
-        e.preventDefault();
-        e.stopPropagation();
-        toggleFullscreen();
-      }, { passive:false });
+    containerEl.addEventListener("click", async () => {
+      const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
+      if (!alreadyFs){
+        await ensureFullscreenIfNeeded();
+      }
     });
 
-    /* === OSD-eigenen FullPage/FullScreen-Button hart an unsere Logik binden === */
+    function ensureFullscreenIfNeeded(){
+      const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
+      if (alreadyFs) return Promise.resolve();
+
+      if (supportsFullscreen()){
+        return new Promise((resolve) => {
+          const onChange = () => {
+            document.removeEventListener("fullscreenchange", onChange);
+            resolve();
+          };
+          document.addEventListener("fullscreenchange", onChange);
+          enterFullscreen();
+        });
+      }
+
+      return new Promise((resolve) => {
+        setFullscreenClasses(true);
+        updatePanBounds(true);
+        resolve();
+      });
+    }
+
+    /* === Bestehenden OSD-Button (rechts neben Haus) für Fullscreen EIN/AUS nutzen === */
     function hookOsdFullPageButton(){
       const root = viewer.container || document.getElementById("myContainer");
       if (!root) return;
 
+      // Button je nach OSD-Version: unterschiedliche Klassen/Titles
       const btn = root.querySelector('.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]');
       if (!btn || btn.__pgHooked) return;
 
       btn.__pgHooked = true;
+
       const handler = (e) => {
+        // wichtig fürs iPhone: im Capture-Modus + alle Events, Standardverhalten unterbinden
         e.preventDefault?.();
         e.stopPropagation?.();
         e.stopImmediatePropagation?.();
-        toggleFullscreen();
+
+        const inFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
+        if (inFs){
+          if (supportsFullscreen()) exitFullscreen();
+          else {
+            setFullscreenClasses(false);
+            updatePanBounds(false);
+          }
+        } else {
+          ensureFullscreenIfNeeded();
+        }
       };
-      btn.addEventListener("click", handler, { capture:true });
-      btn.addEventListener("touchend", handler, { capture:true, passive:false });
-      btn.addEventListener("pointerup", handler, { capture:true });
+
+      // robust für Desktop & Mobile
+      btn.addEventListener("click", handler, { capture: true });
+      btn.addEventListener("touchend", handler, { capture: true, passive: false });
+      btn.addEventListener("pointerup", handler, { capture: true });
     }
 
     /* ====== Popups/Hotspots ====== */
@@ -500,10 +507,7 @@
     }
 
     async function handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlayEl, offsetX = 0, offsetY = 0){
-      // wenn noch nicht fullscreen/fullpage → aktivieren
-      const active = (viewer.isFullScreen && viewer.isFullScreen()) || (viewer.isFullPage && viewer.isFullPage());
-      if (!active) toggleFullscreen();
-
+      await ensureFullscreenIfNeeded();
       focusOn(nx, ny, 1.6);
 
       if (openPopupId === id) {
