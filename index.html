@@ -54,14 +54,14 @@
 
   #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
-  /* Herz oben rechts (neues Bild & Pfad) */
+  /* Herz oben rechts */
   .heart-cta{
     position:absolute; top:12px; right:12px; z-index:1000;
     display:block; opacity:1;
   }
   .heart-cta img{ display:block; width: clamp(24px, 6vw, 44px); height:auto; }
 
-  /* Hotspots: nur runde Icons, kein Quadrat/Highlight */
+  /* Hotspots */
   .hotspot-overlay{
     width:20px; height:20px;
     background:var(--hotspot-color);
@@ -174,7 +174,7 @@
       buildPyramid: true
     },
     showNavigator: false,
-    showNavigationControl: true,
+    showNavigationControl: true,     // zeigt Haus + Full-Page Button
     autoHideControls: true,
     blendTime: 0.12,
     animationTime: 0.85,
@@ -203,12 +203,14 @@
     if (window.matchMedia('(max-width: 640px)').matches) return { BASE: 14, MIN: 10, MAX: 18 };
     return { BASE: 20, MIN: 14, MAX: 24 };
   }
+
+  let osdIsFull = false;        // OSD FullPage/FullScreen Zustand (aus Events)
+  let lastTapTs = 0;            // kleines Debounce für iOS (touchend + click)
+
   function applyHotspotScale(){
     const { BASE, MIN, MAX } = getHotspotSizeParams();
     const z = viewer.viewport.getZoom(true);
-    const circleEl = document.getElementById('circle');
-    const isFs = isFullscreen();
-    const fs = isFs ? 0.98 : 1.0;
+    const fs = (osdIsFull || document.body.classList.contains('pseudo-fs')) ? 0.98 : 1.0;
     const size = Math.max(MIN, Math.min(MAX, BASE * fs * (0.90 + (z-1)*0.12)));
     document.querySelectorAll('.hotspot-overlay').forEach(el => {
       el.style.width  = `${size}px`;
@@ -217,33 +219,17 @@
   }
   viewer.addHandler('zoom', applyHotspotScale);
   viewer.addHandler('resize', applyHotspotScale);
-  viewer.addHandler('open', ()=>{ applyHotspotScale(); hookOsdFullPageButton(); });
-  setTimeout(hookOsdFullPageButton, 0); // extra Fallback
+  viewer.addHandler('open', ()=>{ applyHotspotScale(); });
 
-  /* ====== Vollbild-Logik (vereinheitlicht) ====== */
-  const circleEl = document.getElementById('circle');
+  /* ====== Vollbild-Logik: wir nutzen OSDs FullPage/FullScreen ====== */
+  const circleEl    = document.getElementById('circle');
+  const containerEl = document.getElementById('myContainer');
 
-  function supportsFullscreen(){
-    return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen);
-  }
-  function isFullscreen(){
-    return (document.fullscreenElement === circleEl) ||
-           (document.webkitFullscreenElement === circleEl) ||
-           document.body.classList.contains('pseudo-fs');
-  }
-  function enterFullscreen(){
-    if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
-    if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
-    if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen();
-  }
-  function exitFullscreen(){
-    if (document.exitFullscreen) return document.exitFullscreen();
-    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
-    if (document.msExitFullscreen) return document.msExitFullscreen();
-  }
   function setFullscreenClasses(isFs){
-    circleEl.classList.toggle('is-fullscreen', isFs);
-    if (!supportsFullscreen()){ document.body.classList.toggle('pseudo-fs', isFs); }
+    osdIsFull = !!isFs;
+    circleEl.classList.toggle('is-fullscreen', osdIsFull);
+    applyHotspotScale();
+    updatePanBounds(osdIsFull);
   }
   function updatePanBounds(isFs){
     if (isFs || document.body.classList.contains('pseudo-fs')){
@@ -257,74 +243,43 @@
     }
   }
 
-  document.addEventListener('fullscreenchange', () => {
-    const fs = (document.fullscreenElement === circleEl);
-    setFullscreenClasses(fs); updatePanBounds(fs); applyHotspotScale();
+  // OSD feuert zwei relevante Events:
+  viewer.addHandler('full-page',  e => setFullscreenClasses(!!e.fullPage));
+  viewer.addHandler('full-screen',e => setFullscreenClasses(!!e.fullScreen));
+
+  // Falls Browser-Fullscreen doch genutzt wird (andere Controls o. Ä.)
+  document.addEventListener('fullscreenchange', ()=>{
+    const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    setFullscreenClasses(fs);
   });
-  document.addEventListener('webkitfullscreenchange', () => {
-    const fs = (document.webkitFullscreenElement === circleEl);
-    setFullscreenClasses(fs); updatePanBounds(fs); applyHotspotScale();
+  document.addEventListener('webkitfullscreenchange', ()=>{
+    const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    setFullscreenClasses(fs);
   });
 
-  async function ensureFullscreenIfNeeded(){
-    if (isFullscreen()) return Promise.resolve();
-    if (supportsFullscreen()){
-      return new Promise((resolve)=>{
-        const onChange = ()=>{
-          document.removeEventListener('fullscreenchange', onChange);
-          document.removeEventListener('webkitfullscreenchange', onChange);
-          resolve();
-        };
-        document.addEventListener('fullscreenchange', onChange);
-        document.addEventListener('webkitfullscreenchange', onChange);
-        enterFullscreen();
-      });
+  // Tap/Klick → nur *einseitig* in FullPage gehen (kein Überschreiben des OSD-Buttons)
+  async function ensureFullscreenIfNeeded(ev){
+    const now = Date.now();
+    if (now - lastTapTs < 300) return; // Debounce (iOS feuert oft touchend + click)
+    lastTapTs = now;
+
+    if (!osdIsFull){
+      // bevorzugt OSD FullPage (stabil auf iOS)
+      viewer.setFullPage(true);
+      setFullscreenClasses(true);
     }
-    setFullscreenClasses(true);
-    updatePanBounds(true);
-    return Promise.resolve();
   }
 
-  // Tap/Klick → ggf. Vollbild
-  const containerEl = document.getElementById('myContainer');
-  containerEl.addEventListener('touchend', async (e)=>{
+  containerEl.addEventListener('touchend', (e)=>{
     if (e.touches && e.touches.length === 0){
-      if (!isFullscreen()){ e.preventDefault(); await ensureFullscreenIfNeeded(); }
+      e.preventDefault();
+      ensureFullscreenIfNeeded(e);
     }
-  }, { passive: false });
-  containerEl.addEventListener('click', async ()=>{
-    if (!isFullscreen()){ await ensureFullscreenIfNeeded(); }
+  }, { passive:false });
+
+  containerEl.addEventListener('click', (e)=>{
+    ensureFullscreenIfNeeded(e);
   });
-
-  /* === OSD-Button (rechts neben Haus) für Fullscreen EIN/AUS === */
-  function hookOsdFullPageButton(){
-    const root = viewer.container || document.getElementById('myContainer');
-    if (!root) return;
-
-    // Button suchen – je nach OSD-Version unterschiedliche Klassen/Titles
-    const btn = root.querySelector('.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]');
-    if (!btn || btn.__pgHooked) return;
-    btn.__pgHooked = true;
-
-    const handler = (e)=>{
-      // wichtig fürs iPhone: im Capture-Modus + alle Events, Standardverhalten unterbinden
-      e.preventDefault?.();
-      e.stopPropagation?.();
-      e.stopImmediatePropagation?.();
-
-      if (isFullscreen()){
-        if (supportsFullscreen()) exitFullscreen();
-        else { setFullscreenClasses(false); updatePanBounds(false); }
-      } else {
-        ensureFullscreenIfNeeded();
-      }
-    };
-
-    // robust für Desktop & Mobile
-    btn.addEventListener('click',     handler, { capture:true });
-    btn.addEventListener('touchend',  handler, { capture:true, passive:false });
-    btn.addEventListener('pointerup', handler, { capture:true });
-  }
 
   /* ====== Popups/Hotspots ====== */
   let openPopupId = null;
@@ -361,7 +316,7 @@
   }
 
   async function handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlayEl, offsetX = 0, offsetY = 0){
-    await ensureFullscreenIfNeeded();
+    if (!osdIsFull) viewer.setFullPage(true);
     focusOn(nx, ny, 1.6);
 
     if (openPopupId === id) { closePopup(id); return; }
@@ -374,7 +329,6 @@
     return `${POPUPS_DIRS[0]}/${name}`;
   }
 
-  // Nur Bild rendern – leicht kleiner, nie beschnitten
   function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers=false, offsetX=0, offsetY=0){
     if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
     if (document.getElementById(`popup-${id}`)) return;
