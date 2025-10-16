@@ -10,7 +10,7 @@
 <style>
   :root{
     --green:#789f40;
-    --green-dark:#769b60;
+    --green-dark:#769b60; /* Hintergrund im Vollbild */
     --accent:#870184;
     --bg:#f3f3f3;
     --pad: clamp(14px, 4vw, 20px);
@@ -46,18 +46,29 @@
   }
   .circle{
     width:min(86vw,520px); aspect-ratio:1/1; border-radius:0;
-    clip-path:circle(50% at 50% 50%); background:var(--green-dark);
+    clip-path:circle(50% at 50% 50%); background:var(--green-dark); /* Grundgrün */
     overflow:hidden; position:relative; box-shadow:0 8px 28px rgba(0,0,0,.18);
   }
-  .circle.is-fullscreen{ clip-path:none; border-radius:0; width:100vw; height:100vh; background:#000; }
-  .pseudo-fs .circle{ clip-path:none!important; border-radius:0!important; position:fixed!important; inset:0!important; width:100vw!important; height:100vh!important; background:#000!important; z-index:998!important; }
+  .circle.is-fullscreen{
+    clip-path:none; border-radius:0; width:100vw; height:100vh; 
+    background:var(--green-dark); /* Vollbild ebenfalls grün */
+  }
+  .pseudo-fs .circle{
+    clip-path:none!important; border-radius:0!important; position:fixed!important; inset:0!important;
+    width:100vw!important; height:100vh!important; background:var(--green-dark)!important; z-index:998!important;
+  }
 
   #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
   /* Herz oben rechts */
   .heart-cta{
-    position:absolute; top:12px; right:12px; z-index:1000;
-    display:block; opacity:1;
+    position:absolute; top:12px; right:12px; z-index:2000; /* über OSD-Controls */
+    display:block; opacity:1; pointer-events:auto;
+  }
+  /* Im Vollbild fixieren, damit es wirklich oben rechts bleibt */
+  .circle.is-fullscreen .heart-cta,
+  .pseudo-fs .heart-cta{
+    position:fixed; top:12px; right:12px;
   }
   .heart-cta img{ display:block; width: clamp(24px, 6vw, 44px); height:auto; }
 
@@ -75,23 +86,12 @@
   }
   .hotspot-overlay.has-icon{
     appearance:none; -webkit-appearance:none;
-    padding:0;
-    background-color:transparent !important;
-    border:0 !important;
-    box-shadow:none !important;
-    outline:none !important;
-    border-radius:9999px !important;
-    overflow:hidden;
-    background-clip:padding-box;
+    padding:0; background-color:transparent !important; border:0 !important; box-shadow:none !important;
+    outline:none !important; border-radius:9999px !important; overflow:hidden; background-clip:padding-box;
   }
   .hotspot-overlay.has-icon:focus,
   .hotspot-overlay.has-icon:focus-visible,
-  .hotspot-overlay.has-icon:active{
-    outline:none !important;
-    background-color:transparent !important;
-    border:0 !important;
-    box-shadow:none !important;
-  }
+  .hotspot-overlay.has-icon:active{ outline:none !important; background-color:transparent !important; border:0 !important; box-shadow:none !important; }
   .hotspot-overlay.is-hidden{ opacity:0; pointer-events:none; }
 
   .circle.is-fullscreen .hotspot-overlay,
@@ -174,7 +174,7 @@
       buildPyramid: true
     },
     showNavigator: false,
-    showNavigationControl: true,     // zeigt Haus + Full-Page Button
+    showNavigationControl: true,     // zeigt Haus + Vollbild (Full Page)
     autoHideControls: true,
     blendTime: 0.12,
     animationTime: 0.85,
@@ -204,8 +204,8 @@
     return { BASE: 20, MIN: 14, MAX: 24 };
   }
 
-  let osdIsFull = false;        // OSD FullPage/FullScreen Zustand (aus Events)
-  let lastTapTs = 0;            // kleines Debounce für iOS (touchend + click)
+  let osdIsFull = false;    // OSD FullPage/FullScreen Zustand
+  let toggleLock = false;   // Debounce gegen touchend+click
 
   function applyHotspotScale(){
     const { BASE, MIN, MAX } = getHotspotSizeParams();
@@ -221,15 +221,15 @@
   viewer.addHandler('resize', applyHotspotScale);
   viewer.addHandler('open', ()=>{ applyHotspotScale(); });
 
-  /* ====== Vollbild-Logik: wir nutzen OSDs FullPage/FullScreen ====== */
+  /* ====== Vollbild-Logik: OSD FullPage nutzen ====== */
   const circleEl    = document.getElementById('circle');
   const containerEl = document.getElementById('myContainer');
 
   function setFullscreenClasses(isFs){
     osdIsFull = !!isFs;
     circleEl.classList.toggle('is-fullscreen', osdIsFull);
-    applyHotspotScale();
     updatePanBounds(osdIsFull);
+    applyHotspotScale();
   }
   function updatePanBounds(isFs){
     if (isFs || document.body.classList.contains('pseudo-fs')){
@@ -243,36 +243,32 @@
     }
   }
 
-  // OSD feuert zwei relevante Events:
+  // Auf OSD-Events hören
   viewer.addHandler('full-page',  e => setFullscreenClasses(!!e.fullPage));
   viewer.addHandler('full-screen',e => setFullscreenClasses(!!e.fullScreen));
 
-  // Falls Browser-Fullscreen doch genutzt wird (andere Controls o. Ä.)
-  document.addEventListener('fullscreenchange', ()=>{
-    const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-    setFullscreenClasses(fs);
-  });
-  document.addEventListener('webkitfullscreenchange', ()=>{
-    const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-    setFullscreenClasses(fs);
-  });
+  // Helper: kam das Event von einem OSD-Control?
+  function fromOsdControl(ev){
+    return !!(ev.target && (ev.target.closest('.openseadragon-control') || ev.target.closest('.openseadragon-button')));
+  }
 
-  // Tap/Klick → nur *einseitig* in FullPage gehen (kein Überschreiben des OSD-Buttons)
-  async function ensureFullscreenIfNeeded(ev){
-    const now = Date.now();
-    if (now - lastTapTs < 300) return; // Debounce (iOS feuert oft touchend + click)
-    lastTapTs = now;
+  // Nur ins Vollbild eintreten, niemals hiermit verlassen (das macht der OSD-Button)
+  function ensureFullscreenIfNeeded(ev){
+    if (fromOsdControl(ev)) return;          // Klicks auf Controls ignorieren -> verhindert Doppel-Toggle
+    if (toggleLock) return;
+    toggleLock = true; setTimeout(()=>toggleLock=false, 350);
 
     if (!osdIsFull){
-      // bevorzugt OSD FullPage (stabil auf iOS)
-      viewer.setFullPage(true);
+      viewer.setFullPage(true);              // stabil auf iOS
+      // Klassen werden durch das OSD-Event gesetzt; Fallback falls Event verzögert:
       setFullscreenClasses(true);
     }
   }
 
+  // Tap/Klick auf den Viewer-Hintergrund -> ggf. Vollbild betreten
   containerEl.addEventListener('touchend', (e)=>{
     if (e.touches && e.touches.length === 0){
-      e.preventDefault();
+      if (!fromOsdControl(e)) e.preventDefault(); // nur verhindern, wenn nicht auf einem Control
       ensureFullscreenIfNeeded(e);
     }
   }, { passive:false });
