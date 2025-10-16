@@ -84,23 +84,25 @@
       position:relative;
       box-shadow:0 8px 28px rgba(0,0,0,.18);
     }
-    .circle.is-fullscreen{
+        .circle.is-fullscreen{
       clip-path:none;
       border-radius:0;
       width:100vw;
       height:100vh;
-      background:#000;
+      background:var(--green-dark); 
     }
+
     .pseudo-fs .circle{
-      clip-path:none!important;
-      border-radius:0!important;
-      position:fixed!important;
-      inset:0!important;
-      width:100vw!important;
-      height:100vh!important;
-      background:#000!important;
-      z-index:998!important;
-    }
+    clip-path:none!important;
+    border-radius:0!important;
+    position:fixed!important;
+    inset:0!important;
+    width:100vw!important;
+    height:100vh!important;
+    background:var(--green-dark)!important; /* vorher: #000!important */
+    z-index:998!important;
+  }
+
 
     #myContainer{
       position:absolute;
