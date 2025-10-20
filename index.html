@@ -1,345 +1,144 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Wimmelbild – Plan:g</title>
-  <link rel="icon" type="image/png" href="favicon.png" />
-
-  <!-- Libs global laden, damit beide Varianten funktionieren -->
-  <script src="detect-browser.js"></script>
-  <script src="./openseadragon/openseadragon.min.js"></script>
-
+<template id="tpl-desktop">
   <style>
-    html, body { margin:0; padding:0; height:100%; background:#f3f3f3; }
-    template { display:none !important; }
-  </style>
-</head>
-<body>
+    @font-face { font-family:"circular"; src:url("src/lineto-circular-book.woff") format("woff"); font-weight:normal; }
+    *{ margin:0; padding:0; }
+    html{ height:100%; }
+    body{ position:relative; overflow:hidden; background-color:#f3f3f3; height:100%; }
+    #openseadragon-viewer{ width:800px; height:600px; margin:auto; border:2px solid black; }
 
-  <!-- ============ DESKTOP TEMPLATE (dein Code, Fullscreen deaktiviert) ============ -->
-  <template id="tpl-desktop">
-    <style>
-      @font-face { font-family:"circular"; src:url("src/lineto-circular-book.woff") format("woff"); font-weight:normal; }
-      *{ margin:0; padding:0; }
-      html{ height:100%; }
-      body{ position:relative; overflow:hidden; background-color:#f3f3f3; height:100%; }
-      #openseadragon-viewer{ width:800px; height:600px; margin:auto; border:2px solid black; }
+    .logo-container{ position:absolute; z-index:1000; top:25px; left:25px; opacity:0; display:none; transition:opacity 900ms, diplay 900ms; }
+    .logo{ width:250px; padding-bottom:30px; }
+    .signet{ width:100px; }
 
-      .logo-container{ position:absolute; z-index:1000; top:25px; left:25px; opacity:0; display:none; transition:opacity 900ms, diplay 900ms; }
-      .logo{ width:250px; padding-bottom:30px; }
-      .signet{ width:100px; }
-
-      /* Kreis-Effekt */
-      #myContainer{
-        width:100%; height:100vh; background-color:#769b60;
-        -webkit-clip-path:circle(20vw at center); clip-path:circle(20vw at center);
-        transition:left 900ms, -webkit-clip-path 900ms, clip-path 900ms;
-        position:absolute; left:10vw; z-index:500;
-      }
-      #myContainer:hover{ -webkit-clip-path:circle(100vw at center); clip-path:circle(100vw at center); left:0; }
-      #myContainer:hover ~ .logo-container{ opacity:1; display:block; }
-
-      .welcome{ position:absolute; z-index:250; top:51px; left:22px; width:70%; }
-      .impressum{ position:absolute; bottom:20px; left:22px; font-family:"circular"; z-index:260; font-size:18px; line-height:1.5; }
-      .welcomeMessage{ font-family:"circular"; margin-top:20px; }
-      .link{ text-decoration:none; }
-      .text-link{ color:#789f40; }
-      .flexcta{ width:60%; padding-top:60px; }
-      .cta{ font-family:"circular"; max-width:230px; background:#789f40; padding:15px; color:#fff; text-decoration:none; display:flex; align-items:center; justify-content:center; text-transform:uppercase; font-weight:bold; font-size:18px; transition:background-color 600ms; margin:20px 0 0 0; }
-      .cta:hover{ background:#870184; }
-      .language{ display:flex; width:80px; height:50px; justify-content:space-between; font-size:14px; }
-      .flag-container{ text-align:center; margin:10px 0; }
-      .flag{ width:30px; height:22px; background-size:cover; margin:10px auto; }
-      .flag.en{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
-      .flag.de{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
-      .hotspot-overlay{ width:10px; height:10px; background-size:cover; background-repeat:no-repeat; cursor:pointer; }
-    </style>
-
-    <!-- Redirect wie im Original -->
-    <script data-exec="tpl-desktop">
-      try{
-        var info = (typeof getBrowser==="function") ? getBrowser() : null;
-        if (info && (info.browser==="Microsoft Edge" || info.browser==="Safari" || info.browser==="Internet Explorer")) {
-          window.location = "index_ie.html";
-        }
-      }catch(e){ console.warn(e); }
-    </script>
-
-    <!-- Matomo -->
-    <script data-exec="tpl-desktop">
-      (function(){ try{
-        var _paq = window._paq = window._paq || [];
-        _paq.push(["trackPageView"]); _paq.push(["enableLinkTracking"]);
-        var u="https://www.plan-g.at/sub/piwik/";
-        _paq.push(["setTrackerUrl", u+"piwik.php"]); _paq.push(["setSiteId","4"]);
-        var d=document,g=d.createElement("script"),s=d.getElementsByTagName("script")[0];
-        g.type="text/javascript"; g.async=true; g.defer=true; g.src=u+"piwik.js"; s.parentNode.insertBefore(g,s);
-      }catch(e){ console.warn(e);} })();
-    </script>
-    <!-- /Matomo -->
-
-    <div id="myContainer"></div>
-
-    <script data-exec="tpl-desktop">
-      (function(){
-        var viewer = OpenSeadragon({
-          id: "myContainer",
-          prefixUrl: "openseadragon/images/",
-          tileSources: {
-            type:"image", width:5787, height:7722,
-            url:"./img/wimmelbildfinal.jpg", minLevel:0, maxLevel:5, buildPyramid:true
-          },
-          showNavigator:true,
-          navigatorPosition:"TOP_RIGHT",
-          defaultZoomLevel:0,
-          showNavigationControl:true,
-          /* Wichtig: OSD-Vollbildbutton AUS, damit kein schwarzer Fullpage-Screen erscheint */
-          showFullPageControl:false
-        });
-
-        function loadHotspots(xmlFile){
-          fetch(xmlFile).then(r=>r.text())
-            .then(str=>new DOMParser().parseFromString(str,"text/xml"))
-            .then(xml=>{
-              var nodes = xml.getElementsByTagName("HOTSPOT");
-              for (var i=0;i<nodes.length;i++){
-                var x = parseFloat(nodes[i].getAttribute("X"));
-                var y = parseFloat(nodes[i].getAttribute("Y"));
-                var id = nodes[i].getAttribute("ID");
-                var popupImage = nodes[i].getAttribute("POPUP");
-                addOverlay(x,y,id,"./Assets/button-wim.png", popupImage);
-              }
-            })
-            .catch(console.error);
-        }
-
-        function addOverlay(x,y,id,icon,popupImage){
-          const nx = (x * (5787 / 14344)) / 5787;
-          const ny = (y * (7722 / 19140)) / 7722 * 1.3348;
-          var el = document.createElement("div");
-          el.className="hotspot-overlay";
-          el.style.backgroundImage = "url("+icon+")";
-          el.onmouseover = function(){ togglePopup(id,nx,ny,popupImage); };
-          el.onmouseout  = function(){ togglePopup(id,nx,ny,popupImage); };
-          viewer.addOverlay({ element: el, location: new OpenSeadragon.Point(nx,ny), placement: OpenSeadragon.OverlayPlacement.CENTER });
-        }
-
-        function togglePopup(id,x,y,img){
-          var existing = document.getElementById("popup-"+id);
-          if (existing){ existing.remove(); return; }
-          var popup = document.createElement("div");
-          popup.className="popup"; popup.id="popup-"+id;
-          popup.innerHTML = '<img src="'+img+'" width="400">';
-          viewer.addOverlay({ element: popup, location: new OpenSeadragon.Point(x,y), placement: OpenSeadragon.OverlayPlacement.BOTTOM });
-        }
-
-        loadHotspots("./src/hotspots.xml");
-      })();
-    </script>
-
-    <div class="logo-container">
-      <a href="https://plan-g.at/ueber-uns" target="_blank"><img src="img/signet_bunt.png" class="signet" /></a>
-    </div>
-    <div class="welcome">
-      <a href="https://plan-g.at/ueber-uns" target="_blank"><img src="img/logo.png" class="logo" /></a>
-      <h1 class="welcomeMessage">Die Welt ist ziemlich klein,<br>Gesundheit ziemlich komplex:<br>Viel Spaß beim Entdecken.</h1>
-      <div class="flexcta">
-        <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" class="link"><div class="cta">Dieses Poster</div></a>
-        <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" class="link"><div class="cta">Unsere Arbeit</div></a>
-        <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" class="link"><div class="cta">Informiert bleiben</div></a>
-      </div>
-    </div>
-    <div class="impressum">
-      <div class="language">
-        <div class="flag-container"><a href="https://weltgesundheit.org" class="text-link"><div class="flag de"></div></a></div>
-        <div class="flag-container"><a href="https://weltgesundheit.org/en/" class="text-link"><div class="flag en"></div></a></div>
-      </div>
-      <p>Illustration: Alice Ruzzettu</p>
-      <a href="http://plan-g.at/impressum" class="text-link" target="_blank">Impressum</a>
-    </div>
-  </template>
-
-  <!-- ============ MOBILE TEMPLATE (wie zuvor) ============ -->
-  <template id="tpl-mobile">
-    <style>
-      :root{ --green:#789f40; --green-dark:#769b60; --accent:#870184; --bg:#f3f3f3; --pad:clamp(14px,4vw,20px); --hotspot-color:#ffffff; --hotspot-border:rgba(0,0,0,.25); }
-      *,*::before,*::after{ box-sizing:border-box; }
-      html,body{ margin:0; background:var(--bg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:#111; }
-      a{ color:inherit; text-decoration:none; }
-      .m-header{ padding: calc(env(safe-area-inset-top) + 14px) var(--pad) 16px; }
-      .m-header__logo{ width:clamp(150px,48vw,220px); height:auto; display:block; }
-      .cta{ margin-top:10px; font-weight:700; text-transform:uppercase; font-size:clamp(13px,3.7vw,16px); background:var(--green); color:#fff; padding:12px 16px; border-radius:14px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.12); }
-      .cta.square{ border-radius:0; } .cta:active{ transform:scale(.98); } .m-ctas{ margin-top:14px; display:grid; gap:12px; max-width:360px; }
-      .m-headline{ padding:12px var(--pad) 0; margin-bottom:clamp(14px,4vw,26px); } .m-headline h1{ margin:0; font-size:clamp(18px,5.2vw,22px); line-height:1.28; }
-      .circle-wrap{ padding:clamp(22px,4.8vw,32px) var(--pad) clamp(14px,3.6vw,24px); display:grid; place-items:center; }
-      .circle{ width:min(86vw,520px); aspect-ratio:1/1; clip-path:circle(50% at 50% 50%); background:var(--green-dark); overflow:hidden; position:relative; box-shadow:0 8px 28px rgba(0,0,0,.18); }
-      .circle.is-fullscreen{ clip-path:none; width:100vw; height:100vh; background:var(--green-dark); }
-      .pseudo-fs .circle{ clip-path:none!important; position:fixed!important; inset:0!important; width:100vw!important; height:100vh!important; background:var(--green-dark)!important; z-index:998!important; }
-      #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
-      .heart-cta{ position:absolute; top:12px; right:12px; z-index:1000; display:block; opacity:1; }
-      .heart-cta img{ display:block; width:clamp(36px,9vw,72px); height:auto; }
-
-      .hotspot-overlay{ width:20px; height:20px; background:var(--hotspot-color); background-size:contain; background-position:center; background-repeat:no-repeat; border:1px solid var(--hotspot-border); border-radius:0; box-shadow:0 1px 4px rgba(0,0,0,.35); cursor:pointer; touch-action:manipulation; opacity:1; z-index:2; transition:opacity .15s ease; -webkit-tap-highlight-color:rgba(0,0,0,0); }
-      .hotspot-overlay.has-icon{ appearance:none; background-color:transparent!important; border:0!important; box-shadow:none!important; outline:none!important; border-radius:9999px!important; overflow:hidden; }
-      .hotspot-overlay.is-hidden{ opacity:0; pointer-events:none; }
-      .circle.is-fullscreen .hotspot-overlay, .pseudo-fs .hotspot-overlay{ opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3); }
-
-      .popup{ background:transparent; padding:0; border:none; border-radius:0; box-shadow:none; overflow:visible; max-width:90vw; max-height:85vh; z-index:3; }
-      .popup img{ display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; border-radius:0; }
-
-      .m-footer{ padding:12px var(--pad) calc(env(safe-area-inset-bottom) + 18px); display:grid; gap:8px; }
-      .language{ display:flex; gap:12px; align-items:center; }
-      .flag{ width:28px; height:21px; background-size:cover; background-repeat:no-repeat; border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,.2); }
-      .flag.de{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
-      .flag.en{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
-      .text-link{ color:var(--green); } .m-footer p{ margin:0; font-size:14px; }
-    </style>
-
-    <header class="m-header">
-      <img src="img/logo.png" alt="Plan:g – logo" class="m-header__logo" />
-      <div class="m-ctas">
-        <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" rel="noopener" class="cta square">Dieses Poster</a>
-        <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" rel="noopener" class="cta square">Unsere Arbeit</a>
-        <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" rel="noopener" class="cta square">Informiert bleiben</a>
-      </div>
-    </header>
-
-    <section class="m-headline">
-      <h1>Die Welt ist ziemlich klein,<br>Gesundheit ziemlich komplex:<br>Viel Spaß beim Entdecken.</h1>
-    </section>
-
-    <section class="circle-wrap" aria-label="Interaktives Wimmelbild">
-      <div class="circle" id="circle">
-        <div id="myContainer" role="application" aria-label="Wimmelbild Viewer"></div>
-        <a class="heart-cta" href="https://plan-g.at/ueber-uns" target="_blank" rel="noopener" aria-label="Über uns">
-          <img src="img/signet_bunt.png" alt="" />
-        </a>
-      </div>
-    </section>
-
-    <footer class="m-footer">
-      <div class="language">
-        <a href="https://weltgesundheit.org" class="text-link" aria-label="Deutsch"><div class="flag de" title="Deutsch"></div></a>
-        <a href="https://weltgesundheit.org/en/" class="text-link" aria-label="English"><div class="flag en" title="English"></div></a>
-      </div>
-      <p>Illustration: Alice Ruzzettu</p>
-      <a href="http://plan-g.at/impressum" class="text-link" target="_blank" rel="noopener">Impressum</a>
-    </footer>
-
-    <script data-exec="tpl-mobile">
-      (function(){
-        const ASSETS_BASE = "./Assets";
-        const ICON_DEFAULT = `${ASSETS_BASE}/button-wim.png`;
-        const POPUPS_DIRS = [`${ASSETS_BASE}/popups`, `${ASSETS_BASE}/popups-2`];
-
-        const viewer = OpenSeadragon({
-          id:"myContainer",
-          prefixUrl:"openseadragon/images/",
-          tileSources:{ type:"image", width:5787, height:7722, url:"./img/wimmelbildfinal.jpg", minLevel:0, maxLevel:5, buildPyramid:true },
-          showNavigator:false, showNavigationControl:true, autoHideControls:true,
-          blendTime:.12, animationTime:.85, springStiffness:6.5, zoomPerClick:1.22, zoomPerScroll:1.14,
-          visibilityRatio:.95, constrainDuringPan:true, minZoomImageRatio:1, maxZoomPixelRatio:2.0, immediateRender:true
-        });
-
-        const circleEl = document.getElementById("circle");
-        const containerEl = document.getElementById("myContainer");
-
-        const SOURCE_W=5787, SOURCE_H=7722, AUTHOR_W=14344, AUTHOR_H=19140, Y_EXTRA_SCALE=1.3348;
-        const normalizeXY = (x,y)=>({ nx:(x*(SOURCE_W/AUTHOR_W))/SOURCE_W, ny:(y*(SOURCE_H/AUTHOR_H))/SOURCE_H*Y_EXTRA_SCALE });
-
-        function getHotspotSizeParams(){ return window.matchMedia("(max-width: 640px)").matches ? {BASE:14,MIN:10,MAX:18} : {BASE:20,MIN:14,MAX:24}; }
-        function applyHotspotScale(){
-          const {BASE,MIN,MAX}=getHotspotSizeParams();
-          const z = viewer.viewport.getZoom(true);
-          const isFs = (document.fullscreenElement===circleEl)||document.body.classList.contains("pseudo-fs");
-          const fs = isFs?0.98:1;
-          const size = Math.max(MIN, Math.min(MAX, BASE*fs*(0.90+(z-1)*0.12)));
-          document.querySelectorAll(".hotspot-overlay").forEach(el=>{ el.style.width=`${size}px`; el.style.height=`${size}px`; });
-        }
-        viewer.addHandler("zoom",applyHotspotScale);
-        viewer.addHandler("resize",applyHotspotScale);
-        viewer.addHandler("open",()=>{ applyHotspotScale(); });
-
-        let openPopupId=null; const popupTimers=new Map();
-
-        function addOverlay(x,y,id,iconUrl,popupImage,popupText,popupTitle,colorValue,offsetX=0,offsetY=0){
-          const {nx,ny}=normalizeXY(x,y);
-          const overlay=document.createElement("button");
-          overlay.className="hotspot-overlay has-icon";
-          overlay.type="button"; overlay.setAttribute("data-id",id);
-          overlay.style.backgroundImage=`url("${iconUrl||ICON_DEFAULT}")`;
-          const open=(e)=>{ e.stopPropagation(); maybeOpenPopup(id,nx,ny,popupImage,overlay,offsetX,offsetY); };
-          overlay.addEventListener("touchend",open,{passive:false}); overlay.addEventListener("click",open,{passive:true});
-          viewer.addOverlay({ element:overlay, location:new OpenSeadragon.Point(nx,ny), placement:OpenSeadragon.OverlayPlacement.CENTER });
-        }
-
-        function maybeOpenPopup(id,x,y,popupImage,overlayEl,offsetX=0,offsetY=0){
-          if (openPopupId && openPopupId!==id) closePopup(openPopupId);
-          if (document.getElementById(`popup-${id}`)) return;
-          if (overlayEl) overlayEl.classList.add("is-hidden");
-          const popup=document.createElement("div"); popup.className="popup"; popup.id=`popup-${id}`; popup.role="dialog";
-          const src = popupImage && popupImage.includes("/") ? popupImage : `${POPUPS_DIRS[0]}/${popupImage}`;
-          popup.innerHTML = src ? `<img src="${src}" alt="">` : "";
-          if (offsetX||offsetY) popup.style.transform=`translate(${offsetX}px,${offsetY}px)`;
-          viewer.addOverlay({ element:popup, location:new OpenSeadragon.Point(x,y), placement:OpenSeadragon.OverlayPlacement.BOTTOM });
-          openPopupId=id; if (popupTimers.has(id)) clearTimeout(popupTimers.get(id));
-          popupTimers.set(id, setTimeout(()=>closePopup(id), 10000));
-        }
-
-        function closePopup(id){
-          const el=document.getElementById(`popup-${id}`); if (el) el.remove();
-          const dot=document.querySelector(`.hotspot-overlay[data-id="${CSS.escape(id)}"]`); if (dot) dot.classList.remove("is-hidden");
-          if (popupTimers.has(id)){ clearTimeout(popupTimers.get(id)); popupTimers.delete(id); }
-          if (openPopupId===id) openPopupId=null;
-        }
-
-        function loadHotspots(xmlFile){
-          fetch(xmlFile).then(r=>r.text())
-            .then(str=>new DOMParser().parseFromString(str,"text/xml"))
-            .then(xml=>{
-              const nodes=xml.getElementsByTagName("HOTSPOT");
-              for (let i=0;i<nodes.length;i++){
-                const n=nodes[i];
-                const x=parseFloat(n.getAttribute("X")), y=parseFloat(n.getAttribute("Y")), id=n.getAttribute("ID");
-                const icon = n.getAttribute("ICON")||n.getAttribute("ICONURL")||n.getAttribute("ICON_URL")||n.getAttribute("MARKER")||n.getAttribute("MEDIA")||"";
-                const img  = n.getAttribute("POPUP")||n.getAttribute("POPUPIMG")||n.getAttribute("IMAGE")||"";
-                const offX = parseInt(n.getAttribute("POPOFFSETX")||"0",10);
-                const offY = parseInt(n.getAttribute("POPOFFSETY")||"0",10);
-                addOverlay(x,y,id,icon||ICON_DEFAULT,img,"","",null,offX,offY);
-              }
-              applyHotspotScale();
-            })
-            .catch(console.error);
-        }
-        loadHotspots("./src/hotspots.xml");
-      })();
-    </script>
-  </template>
-
-  <!-- ============ Einbindung/Erkennung ============ -->
-  <script>
-    function executeTemplateScripts(tplId){
-      document.querySelectorAll('script[data-exec="'+tplId+'"]').forEach(old=>{
-        const s=document.createElement('script');
-        if (old.type) s.type = old.type;
-        if (old.src)  s.src  = old.getAttribute('src');
-        s.text = old.textContent;
-        document.body.appendChild(s);
-      });
+    #myContainer{
+      width:100%; height:100vh; background-color:#769b60;
+      -webkit-clip-path:circle(20vw at center); clip-path:circle(20vw at center);
+      transition:left 900ms, -webkit-clip-path 900ms, clip-path 900ms;
+      position:absolute; left:10vw; z-index:500;
     }
+    #myContainer.open{ -webkit-clip-path:circle(100vw at center); clip-path:circle(100vw at center); left:0; }
+    #myContainer:hover:not(.open){ -webkit-clip-path:circle(100vw at center); clip-path:circle(100vw at center); left:0; }
+    #myContainer:hover ~ .logo-container{ opacity:1; display:block; }
 
-    (function chooseVersion(){
-      const isMobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
-      const isSmallViewport = window.matchMedia("(max-width: 820px)").matches;
-      const useMobile = isMobileUA || isSmallViewport;
+    /* eigener Fullscreen-Button */
+    #fullscreen-btn{
+      position:absolute; bottom:20px; right:20px;
+      background:#789f40; color:#fff; border:none;
+      font-family:"circular"; font-size:16px; text-transform:uppercase;
+      padding:12px 18px; border-radius:12px; cursor:pointer; z-index:1500;
+      box-shadow:0 2px 8px rgba(0,0,0,.25); transition:background .3s;
+    }
+    #fullscreen-btn:hover{ background:#870184; }
 
-      const id = useMobile ? "tpl-mobile" : "tpl-desktop";
-      const tpl = document.getElementById(id);
-      const frag = tpl.content.cloneNode(true);
-      document.body.appendChild(frag);
-      executeTemplateScripts(id);
+    .welcome{ position:absolute; z-index:250; top:51px; left:22px; width:70%; }
+    .impressum{ position:absolute; bottom:20px; left:22px; font-family:"circular"; z-index:260; font-size:18px; line-height:1.5; }
+    .welcomeMessage{ font-family:"circular"; margin-top:20px; }
+    .link{ text-decoration:none; } .text-link{ color:#789f40; }
+    .flexcta{ width:60%; padding-top:60px; }
+    .cta{ font-family:"circular"; max-width:230px; background:#789f40; padding:15px; color:#fff; text-decoration:none;
+      display:flex; align-items:center; justify-content:center; text-transform:uppercase; font-weight:bold; font-size:18px;
+      transition:background-color 600ms; margin:20px 0 0 0; }
+    .cta:hover{ background:#870184; }
+    .language{ display:flex; width:80px; height:50px; justify-content:space-between; font-size:14px; }
+    .flag-container{ text-align:center; margin:10px 0; }
+    .flag{ width:30px; height:22px; background-size:cover; margin:10px auto; }
+    .flag.en{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
+    .flag.de{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
+    .hotspot-overlay{ width:10px; height:10px; background-size:cover; background-repeat:no-repeat; cursor:pointer; }
+  </style>
+
+  <div id="myContainer"></div>
+  <button id="fullscreen-btn" type="button">Vollbild</button>
+
+  <script data-exec="tpl-desktop">
+    (function(){
+      const container = document.getElementById("myContainer");
+      const btn = document.getElementById("fullscreen-btn");
+
+      // OpenSeadragon init (mit sichtbarer Toolbar)
+      const viewer = OpenSeadragon({
+        id: "myContainer",
+        prefixUrl: "openseadragon/images/",
+        tileSources:{
+          type:"image", width:5787, height:7722, url:"./img/wimmelbildfinal.jpg", minLevel:0, maxLevel:5, buildPyramid:true
+        },
+        showNavigator:true, navigatorPosition:"TOP_RIGHT",
+        defaultZoomLevel:0, showNavigationControl:true,
+        showFullPageControl:false
+      });
+
+      function loadHotspots(xmlFile){
+        fetch(xmlFile).then(r=>r.text()).then(str=>new DOMParser().parseFromString(str,"text/xml"))
+        .then(xml=>{
+          const nodes = xml.getElementsByTagName("HOTSPOT");
+          for (let i=0;i<nodes.length;i++){
+            const n = nodes[i];
+            const x = parseFloat(n.getAttribute("X"));
+            const y = parseFloat(n.getAttribute("Y"));
+            const id = n.getAttribute("ID");
+            const popup = n.getAttribute("POPUP");
+            addOverlay(x,y,id,"./Assets/button-wim.png",popup);
+          }
+        }).catch(console.error);
+      }
+
+      function addOverlay(x,y,id,icon,popupImage){
+        const nx = (x*(5787/14344))/5787;
+        const ny = (y*(7722/19140))/7722*1.3348;
+        const el = document.createElement("div");
+        el.className="hotspot-overlay";
+        el.style.backgroundImage=`url(${icon})`;
+        el.onmouseover = ()=>togglePopup(id,nx,ny,popupImage);
+        el.onmouseout  = ()=>togglePopup(id,nx,ny,popupImage);
+        viewer.addOverlay({element:el,location:new OpenSeadragon.Point(nx,ny),placement:OpenSeadragon.OverlayPlacement.CENTER});
+      }
+
+      function togglePopup(id,x,y,img){
+        const existing=document.getElementById("popup-"+id);
+        if(existing){ existing.remove(); return; }
+        const popup=document.createElement("div");
+        popup.className="popup"; popup.id="popup-"+id;
+        popup.innerHTML=`<img src="${img}" width="400">`;
+        viewer.addOverlay({element:popup,location:new OpenSeadragon.Point(x,y),placement:OpenSeadragon.OverlayPlacement.BOTTOM});
+      }
+
+      loadHotspots("./src/hotspots.xml");
+
+      // --- Eigenes Vollbild-Handling ---
+      btn.addEventListener("click", async ()=>{
+        const isOpen = container.classList.toggle("open");
+        if(isOpen && container.requestFullscreen){
+          try{ await container.requestFullscreen(); }catch(e){ console.warn(e); }
+        }else if(document.fullscreenElement){
+          document.exitFullscreen?.();
+        }
+      });
+
+      document.addEventListener("fullscreenchange", ()=>{
+        if(!document.fullscreenElement) container.classList.remove("open");
+      });
     })();
   </script>
-</body>
-</html>
+
+  <!-- dein restliches Logo/Welcome/Impressum bleibt -->
+  <div class="logo-container">
+    <a href="https://plan-g.at/ueber-uns" target="_blank"><img src="img/signet_bunt.png" class="signet" /></a>
+  </div>
+  <div class="welcome">
+    <a href="https://plan-g.at/ueber-uns" target="_blank"><img src="img/logo.png" class="logo" /></a>
+    <h1 class="welcomeMessage">Die Welt ist ziemlich klein,<br>Gesundheit ziemlich komplex:<br>Viel Spaß beim Entdecken.</h1>
+    <div class="flexcta">
+      <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" class="link"><div class="cta">Dieses Poster</div></a>
+      <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" class="link"><div class="cta">Unsere Arbeit</div></a>
+      <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" class="link"><div class="cta">Informiert bleiben</div></a>
+    </div>
+  </div>
+  <div class="impressum">
+    <div class="language">
+      <div class="flag-container"><a href="https://weltgesundheit.org" class="text-link"><div class="flag de"></div></a></div>
+      <div class="flag-container"><a href="https://weltgesundheit.org/en/" class="text-link"><div class="flag en"></div></a></div>
+    </div>
+    <p>Illustration: Alice Ruzzettu</p>
+    <a href="http://plan-g.at/impressum" class="text-link" target="_blank">Impressum</a>
+  </div>
+</template>
