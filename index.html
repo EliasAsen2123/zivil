@@ -47,7 +47,7 @@
     /* ========= Viewer/Kreis ========= */
     .circle-wrap{ padding: clamp(22px, 4.8vw, 32px) var(--pad) clamp(14px, 3.6vw, 24px); display:grid; place-items:center; }
     .circle{ width:min(92vw, 1100px); aspect-ratio:1/1; border-radius:0; clip-path:circle(50% at 50% 50%); background:var(--green-dark); overflow:hidden; position:relative; box-shadow:0 8px 28px rgba(0,0,0,.18); }
-    /* Desktop-Hover ähnlich eurer alten Start-Blende (optional sanft) */
+    /* Desktop Hover-Reveal ähnlich Original */
     @media (hover:hover) and (pointer:fine){
       .circle{ transition: clip-path 900ms ease, border-radius 900ms ease; }
       .circle:hover{ clip-path:circle(100% at 50% 50%); border-radius:0; }
@@ -164,9 +164,11 @@
         maxLevel: 5,
         buildPyramid: true
       },
-      showNavigator: false,              // dynamisch per MediaQuery gesetzt (s.u.)
+      showNavigator: true,              // Desktop-Default
+      navigatorPosition: "TOP_RIGHT",
       showNavigationControl: true,
       autoHideControls: true,
+      defaultZoomLevel: 0,
       blendTime: 0.12,
       animationTime: 0.85,
       springStiffness: 6.5,
@@ -179,33 +181,27 @@
       immediateRender: true
     });
 
-    // Navigator nur auf Desktop sichtbar
+    // Nach dem Öffnen auf Home zoomen, damit der Bildausschnitt dem Original ähnelt
+    viewer.addHandler('open', () => { viewer.viewport.goHome(true); applyHotspotScale(); hookOsdFullPageButton(); updateNavigatorVisibility(); });
+
+    // Navigator mobil ausblenden
     function updateNavigatorVisibility(){
       const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-      if (viewer.navigator) {
-        viewer.navigator.setVisible(isDesktop);
-        if (isDesktop) viewer.navigator.setPosition('TOP_RIGHT');
-      } else if (isDesktop) {
-        // Falls OSD den Navigator noch nicht gebaut hat, beim nächsten open-Event setzen
-        viewer.addOnceHandler('open', () => {
-          if (viewer.navigator) {
-            viewer.navigator.setVisible(true);
-            viewer.navigator.setPosition('TOP_RIGHT');
-          }
-        });
-      }
+      if (viewer.navigator) viewer.navigator.setVisible(isDesktop);
     }
-    viewer.addHandler('open', updateNavigatorVisibility);
     window.addEventListener('resize', updateNavigatorVisibility);
 
     /* ====== DOM-Refs ====== */
     const circleEl = document.getElementById("circle");
     const containerEl = document.getElementById("myContainer");
 
+    /* ====== Eingabemedien ====== */
+    const IS_POINTER_FINE = window.matchMedia('(pointer:fine)').matches; // Maus/Desktop
+
     /* ====== Größen/Koordinaten ====== */
     const SOURCE_W = 5787, SOURCE_H = 7722;
     const AUTHOR_W = 14344, AUTHOR_H = 19140;
-    const Y_EXTRA_SCALE = 1.3348; // aus eurer Rechnung
+    const Y_EXTRA_SCALE = 1.3348; // wie Original
 
     function normalizeXY(xAuthor, yAuthor) {
       const nx = (xAuthor * (SOURCE_W / AUTHOR_W)) / SOURCE_W;
@@ -225,99 +221,48 @@
       const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
       const fs = isFs ? 0.98 : 1.0;
       const size = Math.max(MIN, Math.min(MAX, BASE * fs * (0.90 + (z - 1) * 0.12)));
-      document.querySelectorAll(".hotspot-overlay").forEach(el => {
-        el.style.width = `${size}px`;
-        el.style.height = `${size}px`;
-      });
+      document.querySelectorAll(".hotspot-overlay").forEach(el => { el.style.width = `${size}px`; el.style.height = `${size}px`; });
     }
 
     viewer.addHandler("zoom", applyHotspotScale);
     viewer.addHandler("resize", applyHotspotScale);
-    viewer.addHandler("open", () => {
-      applyHotspotScale();
-      hookOsdFullPageButton();
-      updateNavigatorVisibility();
-    });
-    setTimeout(hookOsdFullPageButton, 0);
 
-    /* ====== Vollbild-Logik ====== */
-    function supportsFullscreen(){
-      return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen);
-    }
-    function enterFullscreen(){
-      if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
-      if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
-      if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen();
-    }
-    function exitFullscreen(){
-      if (document.exitFullscreen) return document.exitFullscreen();
-      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
-      if (document.msExitFullscreen) return document.msExitFullscreen();
-    }
-    function setFullscreenClasses(isFs){
-      circleEl.classList.toggle("is-fullscreen", isFs);
-      if (!supportsFullscreen()){
-        document.body.classList.toggle("pseudo-fs", isFs);
-      }
-    }
-    function updatePanBounds(isFs){
-      if (isFs || document.body.classList.contains("pseudo-fs")){
-        viewer.constrainDuringPan = false;
-        viewer.viewport.setVisibilityRatio(0.2);
-        viewer.minZoomImageRatio = 0.8;
-      } else {
-        viewer.constrainDuringPan = true;
-        viewer.viewport.setVisibilityRatio(0.95);
-        viewer.minZoomImageRatio = 1;
-      }
-    }
+    /* ====== Vollbild-Logik: nur auf Touch-Geräten erzwingen ====== */
+    function supportsFullscreen(){ return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen); }
+    function enterFullscreen(){ if (circleEl.requestFullscreen) return circleEl.requestFullscreen(); if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen(); if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen(); }
+    function exitFullscreen(){ if (document.exitFullscreen) return document.exitFullscreen(); if (document.webkitExitFullscreen) return document.webkitExitFullscreen(); if (document.msExitFullscreen) return document.msExitFullscreen(); }
+    function setFullscreenClasses(isFs){ circleEl.classList.toggle("is-fullscreen", isFs); if (!supportsFullscreen()){ document.body.classList.toggle("pseudo-fs", isFs); } }
+    function updatePanBounds(isFs){ if (isFs || document.body.classList.contains("pseudo-fs")){ viewer.constrainDuringPan = false; viewer.viewport.setVisibilityRatio(0.2); viewer.minZoomImageRatio = 0.8; } else { viewer.constrainDuringPan = true; viewer.viewport.setVisibilityRatio(0.95); viewer.minZoomImageRatio = 1; } }
 
-    document.addEventListener("fullscreenchange", () => {
-      const isFs = document.fullscreenElement === circleEl;
-      setFullscreenClasses(isFs);
-      updatePanBounds(isFs);
-      applyHotspotScale();
-    });
-    document.addEventListener("webkitfullscreenchange", () => {
-      const isFs = document.webkitFullscreenElement === circleEl;
-      setFullscreenClasses(isFs);
-      updatePanBounds(isFs);
-      applyHotspotScale();
-    });
+    document.addEventListener("fullscreenchange", () => { const isFs = document.fullscreenElement === circleEl; setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); });
+    document.addEventListener("webkitfullscreenchange", () => { const isFs = document.webkitFullscreenElement === circleEl; setFullscreenClasses(isFs); updatePanBounds(isFs); applyHotspotScale(); });
 
-    // Tap/Click → ggf. Vollbild
+    // Nur auf Touch: Erstklick ⇒ Vollbild
     containerEl.addEventListener("touchend", async (e) => {
       if (e.touches && e.touches.length === 0){
         const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
         if (!alreadyFs){ e.preventDefault(); await ensureFullscreenIfNeeded(); }
       }
     }, { passive: false });
-    containerEl.addEventListener("click", async () => {
-      const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
-      if (!alreadyFs){ await ensureFullscreenIfNeeded(); }
-    });
+    // Desktop-Klick: kein Vollbild erzwungen (wie Original)
 
     function ensureFullscreenIfNeeded(){
+      if (IS_POINTER_FINE) return Promise.resolve(); // Desktop: nie erzwingen
       const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
       if (alreadyFs) return Promise.resolve();
       if (supportsFullscreen()){
-        return new Promise((resolve) => {
-          const onChange = () => { document.removeEventListener("fullscreenchange", onChange); resolve(); };
-          document.addEventListener("fullscreenchange", onChange); enterFullscreen();
-        });
+        return new Promise((resolve) => { const onChange = () => { document.removeEventListener("fullscreenchange", onChange); resolve(); }; document.addEventListener("fullscreenchange", onChange); enterFullscreen(); });
       }
       return new Promise((resolve) => { setFullscreenClasses(true); updatePanBounds(true); resolve(); });
     }
 
-    /* === Fullscreen-Button neben dem Haus: Touch & Click zuverlässig toggeln === */
+    /* === Fullscreen-Button robust toggeln === */
     function hookOsdFullPageButton(){
       const root = viewer.container || document.getElementById("myContainer");
       if (!root) return;
       const btn = root.querySelector('.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]');
       if (!btn || btn.__pgHooked) return;
       btn.__pgHooked = true;
-      btn.style.touchAction = 'manipulation';
-      btn.style.webkitTapHighlightColor = 'rgba(0,0,0,0)';
       const handler = (e) => {
         e.preventDefault?.(); e.stopPropagation?.(); e.stopImmediatePropagation?.();
         const inFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
@@ -345,19 +290,19 @@
       overlay.setAttribute("data-id", id);
 
       const finalIcon = iconUrl || ICON_DEFAULT;
-      if (finalIcon) {
-        overlay.classList.add("has-icon");
-        overlay.style.backgroundImage = `url("${finalIcon}")`;
-      } else if (colorValue) {
-        overlay.style.setProperty("--hotspot-color", colorValue);
-      }
+      if (finalIcon) { overlay.classList.add("has-icon"); overlay.style.backgroundImage = `url("${finalIcon}")`; }
+      else if (colorValue) { overlay.style.setProperty("--hotspot-color", colorValue); }
 
-      const open = async (e) => {
-        e.stopPropagation(); e.preventDefault?.();
-        await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlay, offsetX, offsetY);
-      };
-      overlay.addEventListener("touchend", open, { passive: false });
-      overlay.addEventListener("click", open, { passive: true });
+      // DESKTOP (Maus): Hover wie im Original
+      if (IS_POINTER_FINE){
+        overlay.addEventListener('mouseenter', () => { maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, overlay, false, offsetX, offsetY, /*hideDot*/ false); });
+        overlay.addEventListener('mouseleave', () => { closePopup(id); });
+      } else {
+        // TOUCH: Tap zum Öffnen/Schließen + fokussieren
+        const open = async (e) => { e.stopPropagation(); e.preventDefault?.(); await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlay, offsetX, offsetY); };
+        overlay.addEventListener("touchend", open, { passive: false });
+        overlay.addEventListener("click", open, { passive: true });
+      }
 
       viewer.addOverlay({ element: overlay, location: new OpenSeadragon.Point(nx, ny), placement: OpenSeadragon.OverlayPlacement.CENTER });
     }
@@ -366,21 +311,17 @@
       await ensureFullscreenIfNeeded();
       focusOn(nx, ny, 1.6);
       if (openPopupId === id) { closePopup(id); return; }
-      maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, overlayEl, true, offsetX, offsetY);
+      maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, overlayEl, true, offsetX, offsetY, /*hideDot*/ true);
     }
 
-    function resolvePopupSrc(name){
-      if (!name) return null;
-      if (name.includes("/")) return name; // absoluter/relativer Pfad schon gegeben
-      return `${POPUPS_DIRS[0]}/${name}`;    // Standardverzeichnis
-    }
+    function resolvePopupSrc(name){ if (!name) return null; if (name.includes("/")) return name; return `${POPUPS_DIRS[0]}/${name}`; }
 
-    // Nur Bild rendern (wie mobile Version)
-    function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers = false, offsetX = 0, offsetY = 0){
+    // Nur Bild rendern (wie mobile Version) – hideDot konfigurierbar
+    function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers = false, offsetX = 0, offsetY = 0, hideDot = true){
       if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
       if (document.getElementById(`popup-${id}`)) return;
 
-      if (overlayEl) overlayEl.classList.add("is-hidden");
+      if (overlayEl && hideDot) overlayEl.classList.add("is-hidden");
 
       const imgSrc = resolvePopupSrc(popupImage);
       const popup = document.createElement("div");
@@ -393,8 +334,8 @@
 
       openPopupId = id;
       if (popupTimers.has(id)) clearTimeout(popupTimers.get(id));
-      const t = setTimeout(() => { closePopup(id); }, 10000);
-      popupTimers.set(id, t);
+      // Autoclose nur auf Touch, auf Desktop offen lassen bis Mouseleave
+      if (!IS_POINTER_FINE){ const t = setTimeout(() => { closePopup(id); }, 10000); popupTimers.set(id, t); }
     }
 
     function closePopup(id){
@@ -406,7 +347,7 @@
       if (openPopupId === id) openPopupId = null;
     }
 
-    // XML laden
+    // XML laden (flexible Attribute wie mobil)
     function loadHotspots(xmlFile) {
       fetch(xmlFile)
         .then(r => r.text())
@@ -419,26 +360,11 @@
             const y = parseFloat(node.getAttribute("Y"));
             const id = node.getAttribute("ID");
 
-            const iconUrl =
-              node.getAttribute("ICON") ||
-              node.getAttribute("ICONURL") ||
-              node.getAttribute("ICON_URL") ||
-              node.getAttribute("MARKER") ||
-              node.getAttribute("MEDIA") ||
-              "";
-
-            const popupImage =
-              node.getAttribute("POPUP") ||
-              node.getAttribute("POPUPIMG") ||
-              node.getAttribute("IMAGE") ||
-              "";
-
+            const iconUrl = node.getAttribute("ICON") || node.getAttribute("ICONURL") || node.getAttribute("ICON_URL") || node.getAttribute("MARKER") || node.getAttribute("MEDIA") || "";
+            const popupImage = node.getAttribute("POPUP") || node.getAttribute("POPUPIMG") || node.getAttribute("IMAGE") || "";
             const popupText = "";  // nur Bild
             const popupTitle = ""; // nur Bild
-
-            const colorValue =
-              node.getAttribute("COLOR") || node.getAttribute("COLOUR") || node.getAttribute("FARBE") || node.getAttribute("FILL") || node.getAttribute("BG") || node.getAttribute("DOTCOLOR") || null;
-
+            const colorValue = node.getAttribute("COLOR") || node.getAttribute("COLOUR") || node.getAttribute("FARBE") || node.getAttribute("FILL") || node.getAttribute("BG") || node.getAttribute("DOTCOLOR") || null;
             const offsetX = parseInt(node.getAttribute("POPOFFSETX") || "0", 10);
             const offsetY = parseInt(node.getAttribute("POPOFFSETY") || "0", 10);
 
