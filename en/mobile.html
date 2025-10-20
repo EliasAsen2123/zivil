@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Wimmelbild – Plan:g (Mobile)</title>
+  <title>Wimmelbild – Plan:g (Mobile, EN)</title>
   <link rel="icon" type="image/png" href="../favicon.png" />
   <script src="../openseadragon/openseadragon.min.js"></script>
 
@@ -113,7 +113,7 @@
       z-index:1;
     }
 
-    /* Heart top right */
+    /* Heart top-right */
     .heart-cta{
       position:absolute;
       top:12px;
@@ -240,18 +240,18 @@
 
   <section class="m-headline">
     <h1>
-      The world is pretty small,<br />
+      The world is quite small,<br />
       health is pretty complex:<br />
-      Enjoy exploring.
+      Have fun exploring.
     </h1>
   </section>
 
-  <section class="circle-wrap" aria-label="Interactive poster">
+  <section class="circle-wrap" aria-label="Interactive hidden object picture">
     <div class="circle" id="circle">
       <!-- Viewer -->
       <div id="myContainer" role="application" aria-label="Wimmelbild viewer"></div>
 
-      <!-- Heart top right -->
+      <!-- Heart (top-right) -->
       <a class="heart-cta" href="https://plan-g.at/ueber-uns" target="_blank" rel="noopener" aria-label="About us">
         <img src="../img/signet_bunt.png" alt="" />
       </a>
@@ -275,8 +275,8 @@
     /* ====== Paths ====== */
     const ASSETS_BASE = "../Assets";
     const ICON_DEFAULT = `${ASSETS_BASE}/button-wim.png`;
-    // English popups live in popups-en
-    const POPUPS_DIR = `${ASSETS_BASE}/popups-en`;
+    // only the EN popups folder (as requested)
+    const POPUPS_DIRS = [`${ASSETS_BASE}/popups-en`];
 
     /* ====== OpenSeadragon ====== */
     const viewer = OpenSeadragon({
@@ -310,7 +310,7 @@
     const circleEl = document.getElementById("circle");
     const containerEl = document.getElementById("myContainer");
 
-    /* ====== Dimensions/coords ====== */
+    /* ====== Sizes/coords ====== */
     const SOURCE_W = 5787, SOURCE_H = 7722;
     const AUTHOR_W = 14344, AUTHOR_H = 19140;
     const Y_EXTRA_SCALE = 1.3348;
@@ -345,28 +345,32 @@
       applyHotspotScale();
       hookOsdFullPageButton();
     });
-    setTimeout(hookOsdFullPageButton, 0); // fallback
+    setTimeout(hookOsdFullPageButton, 0); // extra fallback
 
     /* ====== Fullscreen logic ====== */
     function supportsFullscreen(){
       return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen);
     }
+
     function enterFullscreen(){
       if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
       if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
       if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen();
     }
+
     function exitFullscreen(){
       if (document.exitFullscreen) return document.exitFullscreen();
       if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
       if (document.msExitFullscreen) return document.msExitFullscreen();
     }
+
     function setFullscreenClasses(isFs){
       circleEl.classList.toggle("is-fullscreen", isFs);
       if (!supportsFullscreen()){
         document.body.classList.toggle("pseudo-fs", isFs);
       }
     }
+
     function updatePanBounds(isFs){
       if (isFs || document.body.classList.contains("pseudo-fs")){
         viewer.constrainDuringPan = false;
@@ -378,12 +382,14 @@
         viewer.minZoomImageRatio = 1;
       }
     }
+
     document.addEventListener("fullscreenchange", () => {
       const isFs = document.fullscreenElement === circleEl;
       setFullscreenClasses(isFs);
       updatePanBounds(isFs);
       applyHotspotScale();
     });
+
     document.addEventListener("webkitfullscreenchange", () => {
       const isFs = document.webkitFullscreenElement === circleEl;
       setFullscreenClasses(isFs);
@@ -391,7 +397,7 @@
       applyHotspotScale();
     });
 
-    // Tap/Click → enter fullscreen if needed
+    // Tap/Click → maybe go fullscreen
     containerEl.addEventListener("touchend", async (e) => {
       if (e.touches && e.touches.length === 0){
         const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
@@ -401,6 +407,7 @@
         }
       }
     }, { passive: false });
+
     containerEl.addEventListener("click", async () => {
       const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
       if (!alreadyFs){
@@ -422,6 +429,7 @@
           enterFullscreen();
         });
       }
+
       return new Promise((resolve) => {
         setFullscreenClasses(true);
         updatePanBounds(true);
@@ -429,7 +437,7 @@
       });
     }
 
-    /* === Fullscreen button near the house: reliable toggle === */
+    /* === Fullscreen button hook === */
     function hookOsdFullPageButton(){
       const root = viewer.container || document.getElementById("myContainer");
       if (!root) return;
@@ -527,10 +535,10 @@
     function resolvePopupSrc(name){
       if (!name) return null;
       if (name.includes("/")) return name;
-      return `${POPUPS_DIR}/${name}`;
+      return `${POPUPS_DIRS[0]}/${name}`;
     }
 
-    // render image-only popup
+    // Render image only
     function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers = false, offsetX = 0, offsetY = 0){
       if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
       if (document.getElementById(`popup-${id}`)) return;
@@ -576,7 +584,7 @@
       if (openPopupId === id) openPopupId = null;
     }
 
-    // load XML (shared)
+    // Load XML
     function loadHotspots(xmlFile) {
       fetch(xmlFile)
         .then(r => r.text())
@@ -625,9 +633,10 @@
         .catch(err => console.error("Error loading XML:", err));
     }
 
+    // NOTE: we're in /en → go one level up to src + use the EN XML
     loadHotspots("../src/hotspots-en.xml");
 
-    // helpers
+    // Helper
     function focusOn(nx, ny, zoomFactor = 1.6){
       const ref = new OpenSeadragon.Point(nx, ny);
       viewer.viewport.panTo(ref, true);
