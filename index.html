@@ -20,7 +20,7 @@
 
   <iframe id="appFrame" title="Wimmelbild"></iframe>
 
-  <!-- MOBILE-HTML (UNVERÄNDERT BIS AUF STRING-FIXES) -->
+  <!-- Deine MOBILE-HTML (UNVERÄNDERT) -->
   <template id="mobile-html"><!--
 <!DOCTYPE html>
 <html lang="de">
@@ -299,8 +299,8 @@
   <script>
     /* ====== Pfade ====== */
     const ASSETS_BASE = "./Assets";
-    const ICON_DEFAULT = `${ASSETS_BASE}/button-wim.png`;
-    const POPUPS_DIRS = [`${ASSETS_BASE}/popups`, `${ASSETS_BASE}/popups-2`];
+    const ICON_DEFAULT = ${ASSETS_BASE}/button-wim.png;
+    const POPUPS_DIRS = [${ASSETS_BASE}/popups, ${ASSETS_BASE}/popups-2];
 
     /* ====== OpenSeadragon ====== */
     const viewer = OpenSeadragon({
@@ -358,8 +358,8 @@
       const fs = isFs ? 0.98 : 1.0;
       const size = Math.max(MIN, Math.min(MAX, BASE * fs * (0.90 + (z - 1) * 0.12)));
       document.querySelectorAll(".hotspot-overlay").forEach(el => {
-        el.style.width = `${size}px`;
-        el.style.height = `${size}px`;
+        el.style.width = ${size}px;
+        el.style.height = ${size}px;
       });
     }
 
@@ -519,13 +519,13 @@
       const overlay = document.createElement("button");
       overlay.className = "hotspot-overlay";
       overlay.type = "button";
-      overlay.setAttribute("aria-label", popupTitle || popupText || `Hotspot ${id}`);
+      overlay.setAttribute("aria-label", popupTitle || popupText || Hotspot ${id});
       overlay.setAttribute("data-id", id);
 
       const finalIcon = iconUrl || ICON_DEFAULT;
       if (finalIcon) {
         overlay.classList.add("has-icon");
-        overlay.style.backgroundImage = `url("${finalIcon}")`;
+        overlay.style.backgroundImage = url("${finalIcon}");
       } else if (colorValue) {
         overlay.style.setProperty("--hotspot-color", colorValue);
       }
@@ -559,27 +559,27 @@
     function resolvePopupSrc(name){
       if (!name) return null;
       if (name.includes("/")) return name;
-      return `${POPUPS_DIRS[0]}/${name}`;
+      return ${POPUPS_DIRS[0]}/${name};
     }
 
     // Nur Bild rendern
     function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers = false, offsetX = 0, offsetY = 0){
       if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
-      if (document.getElementById(`popup-${id}`)) return;
+      if (document.getElementById(popup-${id})) return;
 
       if (overlayEl) overlayEl.classList.add("is-hidden");
 
       const imgSrc = resolvePopupSrc(popupImage);
       const popup = document.createElement("div");
       popup.className = "popup";
-      popup.id = `popup-${id}`;
+      popup.id = popup-${id};
       popup.role = "dialog";
 
-      const markup = imgSrc ? `<img src="${imgSrc}" alt="">` : "";
+      const markup = imgSrc ? <img src="${imgSrc}" alt=""> : "";
       popup.innerHTML = markup;
       popup.addEventListener("click", e => e.stopPropagation());
 
-      if (offsetX || offsetY) popup.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+      if (offsetX || offsetY) popup.style.transform = translate(${offsetX}px, ${offsetY}px);
 
       viewer.addOverlay({
         element: popup,
@@ -595,10 +595,10 @@
     }
 
     function closePopup(id){
-      const el = document.getElementById(`popup-${id}`);
+      const el = document.getElementById(popup-${id});
       if (el) el.remove();
 
-      const dot = document.querySelector(`.hotspot-overlay[data-id="${CSS.escape(id)}"]`);
+      const dot = document.querySelector(.hotspot-overlay[data-id="${CSS.escape(id)}"]);
       if (dot) dot.classList.remove("is-hidden");
 
       if (popupTimers.has(id)) {
@@ -672,7 +672,7 @@
 </html>
 --></template>
 
-  <!-- DESKTOP-HTML (UNVERÄNDERT BIS AUF STRING-FIXES) -->
+  <!-- Deine DESKTOP-HTML (UNVERÄNDERT) -->
   <template id="desktop-html"><!--
 <!DOCTYPE html>
 <html xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml" lang="en">
@@ -924,7 +924,7 @@
 
         var overlay = document.createElement("div");
         overlay.className = "hotspot-overlay";
-        overlay.style.backgroundImage = `url(${icon})`;
+        overlay.style.backgroundImage = url(${icon});
 
         overlay.onmouseover = function () {
           togglePopup(id, normalizedX, normalizedY, popupImage);
@@ -941,15 +941,15 @@
       }
 
       function togglePopup(id, x, y, popupImage) {
-        let existingPopup = document.getElementById(`popup-${id}`);
+        let existingPopup = document.getElementById(popup-${id});
 
         if(existingPopup) {
           existingPopup.remove();
         } else {
           let popup = document.createElement("div");
           popup.className = "popup";
-          popup.id = `popup-${id}`;
-          popup.innerHTML = `<img src="${popupImage}" width="400">`;
+          popup.id = popup-${id};
+          popup.innerHTML = <img src ="${popupImage}" width="400">;
 
           viewer.addOverlay({
             element: popup,
@@ -1036,9 +1036,7 @@
       const iframe = document.getElementById('appFrame');
 
       // Inhalt 1:1 in das iframe laden (srcdoc, damit keine Kollisionen im Parent-DOM entstehen)
-      const raw = tpl.innerHTML.trim();
-      const stripped = raw.replace(/^<!--\s*|\s*-->$/g, '');
-      iframe.srcdoc = stripped;
+      iframe.srcdoc = tpl.innerHTML.replace(/^<!--|-->$/g, '');
     })();
   </script>
 </body>
