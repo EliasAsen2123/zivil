@@ -1,89 +1,86 @@
 <!DOCTYPE html>
 <html xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml" lang="en">
   <head>
+    <meta charset="utf-8" />
     <title>Wimmelbild - Plan:g</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <!--COPY ME INTO HEAD-->
+
+    <!-- OpenSeadragon -->
     <script src="./openseadragon/openseadragon.min.js"></script>
-    <!--COPY ME INTO HEAD-->
+
+    <!-- Browser Detection -->
     <script src="detect-browser.js"></script>
-    <script type="text/javascript">
+    <script>
       var info = getBrowser();
-      console.log(info);
-      if (
-        info.browser === "Microsoft Edge" ||
-        info.browser === "Safari" ||
-        info.browser === "Internet Explorer"
-      ) {
+      if (info.browser === "Microsoft Edge" || info.browser === "Safari" || info.browser === "Internet Explorer") {
         window.location = "index_ie.html";
       }
     </script>
+
     <style>
+      /* === Fonts ======================================================== */
+      /* Stelle sicher, dass diese Dateien wirklich unter /src/ liegen */
       @font-face {
         font-family: "circular";
-        src: url("src/lineto-circular-book.woff") format("woff");
-        font-weight: normal;
+        src:
+          url("src/lineto-circular-book.woff2") format("woff2"),
+          url("src/lineto-circular-book.woff") format("woff");
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
       }
-      * {
-        margin: 0px;
-        padding: 0px;
-      }
-      html {
-        height: 100%;
-      }
+
+      /* === Resets / Base =============================================== */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { height: 100%; }
       body {
         position: relative;
         overflow: hidden;
         background-color: #f3f3f3;
         height: 100%;
+        font-family: "circular", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                     Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans",
+                     sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
-      #openseadragon-viewer {
-        width: 800px;
-        height: 600px;
-        margin: auto;
-        border: 2px solid black;
-      }
+
+      /* Unbenutzter Stil entfernt (#openseadragon-viewer wurde nicht verwendet) */
+
+      /* === Branding / Logos ============================================ */
       .logo-container {
         position: absolute;
         z-index: 1000;
         top: 25px;
         left: 25px;
         opacity: 0;
-        display: none;
-        -webkit-transition: opacity 900ms, diplay 900ms;
-        transition: opacity 900ms, diplay 900ms;
+        visibility: hidden;            /* display kann nicht getrackt werden; visibility schon */
+        transition: opacity 900ms ease, visibility 900ms ease;
       }
-      .logo {
-        width: 250px;
-        padding-bottom: 30px;
-      }
-      .signet {
-        width: 100px;
-      }
+      .logo { width: 250px; padding-bottom: 30px; }
+      .signet { width: 100px; }
+
+      /* === Viewer Container ============================================ */
       #myContainer {
         width: 100%;
         height: 100vh;
         background-color: #769b60;
-        -webkit-clip-path: circle(20vw at center);
         clip-path: circle(20vw at center);
-        -webkit-transition: left 900ms, -webkit-clip-path 900ms;
-        transition: left 900ms, -webkit-clip-path 900ms;
-        transition: clip-path 900ms, left 900ms;
-        transition: clip-path 900ms, left 900ms, -webkit-clip-path 900ms;
+        transition: clip-path 900ms ease, left 900ms ease;
         position: absolute;
         left: 10vw;
         z-index: 500;
       }
       #myContainer:hover {
-        -webkit-clip-path: circle(100vw at center);
         clip-path: circle(100vw at center);
         left: 0vw;
       }
       #myContainer:hover ~ .logo-container {
         opacity: 1;
-        display: block;
+        visibility: visible;
       }
+
+      /* === Welcome / CTA ============================================== */
       .welcome {
         position: absolute;
         z-index: 250;
@@ -91,117 +88,91 @@
         left: 22px;
         width: 70%;
       }
+      .welcomeMessage { margin-top: 20px; }
+
       .impressum {
         position: absolute;
         bottom: 20px;
         left: 22px;
-        font-family: "circular";
         z-index: 260;
         font-size: 18px;
         line-height: 1.5;
       }
-      .welcomeMessage {
-        font-family: "circular";
-        margin-top: 20px;
-      }
-      .link {
-        text-decoration: none;
-      }
-      .text-link {
-        color: #789f40;
-      }
-      .flexcta {
-        width: 60%;
-        padding-top: 60px;
-      }
+
+      .link { text-decoration: none; }
+      .text-link { color: #789f40; }
+
+      .flexcta { width: 60%; padding-top: 60px; }
+
       .cta {
-        font-family: "circular";
         max-width: 230px;
         background-color: #789f40;
         padding: 15px;
-        color: white;
+        color: #fff;
         text-decoration: none;
-        display: -webkit-box;
-        display: -ms-flexbox;
         display: flex;
-        -webkit-box-align: center;
-        -ms-flex-align: center;
         align-items: center;
-        -webkit-box-pack: center;
-        -ms-flex-pack: center;
         justify-content: center;
         text-transform: uppercase;
         font-weight: bold;
         font-size: 18px;
-        -webkit-transition: background-color 600ms;
         transition: background-color 600ms;
-        margin: 20px;
-        margin-left: 0px;
-        margin-top: 0px;
+        margin: 20px 0 0 0;
       }
-      .cta:hover {
-        background-color: #870184;
-      }
+      .cta:hover { background-color: #870184; }
+
+      /* === Language Flags ============================================= */
       .language {
-        display: -webkit-box;
-        display: -ms-flexbox;
         display: flex;
         width: 80px;
         height: 50px;
-        -webkit-box-pack: justify;
-        -ms-flex-pack: justify;
         justify-content: space-between;
         font-size: 14px;
       }
-      .flag-container {
-        text-align: center;
-        margin: 10px 0px;
-      }
+      .flag-container { text-align: center; margin: 10px 0; }
       .flag {
         width: 30px;
         height: 22px;
         background-size: cover;
         margin: 10px auto;
       }
-      .flag.en {
-        background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg");
-      }
-      .flag.de {
-        background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg");
-      }
+      .flag.en { background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
+      .flag.de { background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
+
+      /* === Hotspots / Popups =========================================== */
       .hotspot-overlay {
-        width: 10px;
-        height: 10px;
-        background-size: cover;  /* Ensure the image fits the div */
+        width: 32px;          /* etwas größer, klickbarer */
+        height: 32px;
+        background-size: contain;
         background-repeat: no-repeat;
-        cursor: pointer;        /* Makes the hotspot clickable */
+        cursor: pointer;
+        pointer-events: auto;
       }
+      .popup img { display: block; max-width: 100%; height: auto; }
     </style>
+
     <!-- Matomo -->
-    <script type="text/javascript">
+    <script>
       var _paq = window._paq || [];
-      /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
       _paq.push(["trackPageView"]);
       _paq.push(["enableLinkTracking"]);
       (function() {
         var u = "https://www.plan-g.at/sub/piwik/";
         _paq.push(["setTrackerUrl", u + "piwik.php"]);
         _paq.push(["setSiteId", "4"]);
-        var d = document,
-          g = d.createElement("script"),
-          s = d.getElementsByTagName("script")[0];
-        g.type = "text/javascript";
-        g.async = true;
-        g.defer = true;
-        g.src = u + "piwik.js";
+        var d = document, g = d.createElement("script"), s = d.getElementsByTagName("script")[0];
+        g.type = "text/javascript"; g.async = true; g.defer = true; g.src = u + "piwik.js";
         s.parentNode.insertBefore(g, s);
       })();
     </script>
     <!-- End Matomo Code -->
   </head>
+
   <body>
     <div id="myContainer"></div>
+
     <script>
+      /* === OpenSeadragon Init ========================================= */
       var viewer = OpenSeadragon({
         id: "myContainer",
         prefixUrl: "openseadragon/images/",
@@ -212,37 +183,34 @@
           url: "./img/wimmelbildfinal.jpg",
           minLevel: 0,
           maxLevel: 5,
-          buildPyramid: true,
-
+          buildPyramid: true
         },
-        showNavigator: true, 
+        showNavigator: true,
         navigatorPosition: "TOP_RIGHT",
         defaultZoomLevel: 0,
-        showNavigationControl: true,
+        showNavigationControl: true
       });
 
+      /* === Hotspots aus XML laden ===================================== */
       function loadHotspots(xmlFile) {
         fetch(xmlFile)
-        .then(response => response.text())
-        .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
-        .then(xml => {
+          .then(r => r.text())
+          .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+          .then(xml => {
             let hotspots = xml.getElementsByTagName("HOTSPOT");
             for (let i = 0; i < hotspots.length; i++) {
               let x = parseFloat(hotspots[i].getAttribute("X"));
               let y = parseFloat(hotspots[i].getAttribute("Y"));
               let id = hotspots[i].getAttribute("ID");
-              let icon = hotspots[i].getAttribute("MEDIA");
               let popupImage = hotspots[i].getAttribute("POPUP");
-                
-
               addOverlay(x, y, id, "./Assets/button-wim.png", popupImage);
             }
-            
-        })
-        .catch(error => console.error("Error loading XML:", error));
+          })
+          .catch(err => console.error("Error loading XML:", err));
       }
 
-      function addOverlay(x, y, id, icon, popupImage) {        
+      function addOverlay(x, y, id, icon, popupImage) {
+        /* Normierung wie in der Desktop-Version */
         const normalizedX = (x * (5787 / 14344)) / 5787;
         const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
 
@@ -250,12 +218,8 @@
         overlay.className = "hotspot-overlay";
         overlay.style.backgroundImage = `url(${icon})`;
 
-        overlay.onmouseover = function () {
-          togglePopup(id, normalizedX, normalizedY, popupImage);
-        };
-        overlay.onmouseout = function () {
-          togglePopup(id, normalizedX, normalizedY, popupImage);
-        };
+        overlay.addEventListener("mouseenter", () => togglePopup(id, normalizedX, normalizedY, popupImage));
+        overlay.addEventListener("mouseleave", () => togglePopup(id, normalizedX, normalizedY, popupImage));
 
         viewer.addOverlay({
           element: overlay,
@@ -265,86 +229,70 @@
       }
 
       function togglePopup(id, x, y, popupImage) {
-        let existingPopup = document.getElementById(`popup-${id}`);
-
-        if(existingPopup) {
-          existingPopup.remove();
-        } else {
-          let popup = document.createElement("div");
-          popup.className = "popup";
-          popup.id = `popup-${id}`;
-          popup.innerHTML = `<img src ="${popupImage}" width="400">`;
-
-          viewer.addOverlay({
-            element: popup,
-            location: new OpenSeadragon.Point(x, y),
-            placement:OpenSeadragon.OverlayPlacement.BOTTOM
-          });
+        let existing = document.getElementById(`popup-${id}`);
+        if (existing) {
+          existing.remove();
+          return;
         }
+        let popup = document.createElement("div");
+        popup.className = "popup";
+        popup.id = `popup-${id}`;
+        popup.innerHTML = `<img src="${popupImage}" width="400" alt="Hotspot Bild">`;
+
+        viewer.addOverlay({
+          element: popup,
+          location: new OpenSeadragon.Point(x, y),
+          placement: OpenSeadragon.OverlayPlacement.BOTTOM
+        });
       }
+
       loadHotspots("./src/hotspots.xml");
     </script>
+
     <div class="logo-container">
-      <a href="https://plan-g.at/ueber-uns" target="blank">
-        <img src="img/signet_bunt.png" class="signet"
-      /></a>
+      <a href="https://plan-g.at/ueber-uns" target="_blank" rel="noopener">
+        <img src="img/signet_bunt.png" class="signet" alt="Plan:g Signet" />
+      </a>
     </div>
+
     <div class="welcome">
-      <a href="https://plan-g.at/ueber-uns" target="_blank">
-        <img src="img/logo.png" class="logo"
-      /></a>
+      <a href="https://plan-g.at/ueber-uns" target="_blank" rel="noopener">
+        <img src="img/logo.png" class="logo" alt="Plan:g Logo" />
+      </a>
       <h1 class="welcomeMessage">
         Die Welt ist ziemlich klein,<br />
         Gesundheit ziemlich komplex:<br />
         Viel Spaß beim Entdecken.
       </h1>
+
       <div class="flexcta">
-        <a
-          href="https://plan-g.at/fachthemen/medizin-und-eza"
-          target="_blank"
-          class="link"
-        >
-          <div class="cta">
-            Dieses Poster
-          </div>
+        <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" rel="noopener" class="link">
+          <div class="cta">Dieses Poster</div>
         </a>
-        <a
-          href="https://plan-g.at/projekte/alle-projekte"
-          target="_blank"
-          class="link"
-        >
-          <div class="cta">
-            Unsere Arbeit
-          </div>
+        <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" rel="noopener" class="link">
+          <div class="cta">Unsere Arbeit</div>
         </a>
-        <a
-          href="https://plan-g.at/news-events/informiert-bleiben"
-          target="_blank"
-          class="link"
-        >
-          <div class="cta">
-            Informiert bleiben
-          </div>
+        <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" rel="noopener" class="link">
+          <div class="cta">Informiert bleiben</div>
         </a>
       </div>
     </div>
+
     <div class="impressum">
       <div class="language">
         <div class="flag-container">
-          <a href="https://weltgesundheit.org" class="text-link"
-            ><div class="flag de"></div
-          ></a>
+          <a href="https://weltgesundheit.org" class="text-link">
+            <div class="flag de" aria-label="Deutsch (AT)"></div>
+          </a>
         </div>
         <div class="flag-container">
           <a href="https://weltgesundheit.org/en/" class="text-link">
-            <div class="flag en"></div>
+            <div class="flag en" aria-label="English (GB)"></div>
           </a>
         </div>
       </div>
       <p>Illustration: Alice Ruzzettu</p>
-      <a href="http://plan-g.at/impressum" class="text-link" target="_blank"
-        >Impressum</a
-      >
+      <a href="http://plan-g.at/impressum" class="text-link" target="_blank" rel="noopener">Impressum</a>
     </div>
   </body>
 </html>
