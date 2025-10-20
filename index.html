@@ -1,144 +1,36 @@
-<template id="tpl-desktop">
-  <style>
-    @font-face { font-family:"circular"; src:url("src/lineto-circular-book.woff") format("woff"); font-weight:normal; }
-    *{ margin:0; padding:0; }
-    html{ height:100%; }
-    body{ position:relative; overflow:hidden; background-color:#f3f3f3; height:100%; }
-    #openseadragon-viewer{ width:800px; height:600px; margin:auto; border:2px solid black; }
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wimmelbild – Weiterleitung</title>
+  <script>
+    (function() {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
+      const isSmall = window.innerWidth < 900;
 
-    .logo-container{ position:absolute; z-index:1000; top:25px; left:25px; opacity:0; display:none; transition:opacity 900ms, diplay 900ms; }
-    .logo{ width:250px; padding-bottom:30px; }
-    .signet{ width:100px; }
-
-    #myContainer{
-      width:100%; height:100vh; background-color:#769b60;
-      -webkit-clip-path:circle(20vw at center); clip-path:circle(20vw at center);
-      transition:left 900ms, -webkit-clip-path 900ms, clip-path 900ms;
-      position:absolute; left:10vw; z-index:500;
-    }
-    #myContainer.open{ -webkit-clip-path:circle(100vw at center); clip-path:circle(100vw at center); left:0; }
-    #myContainer:hover:not(.open){ -webkit-clip-path:circle(100vw at center); clip-path:circle(100vw at center); left:0; }
-    #myContainer:hover ~ .logo-container{ opacity:1; display:block; }
-
-    /* eigener Fullscreen-Button */
-    #fullscreen-btn{
-      position:absolute; bottom:20px; right:20px;
-      background:#789f40; color:#fff; border:none;
-      font-family:"circular"; font-size:16px; text-transform:uppercase;
-      padding:12px 18px; border-radius:12px; cursor:pointer; z-index:1500;
-      box-shadow:0 2px 8px rgba(0,0,0,.25); transition:background .3s;
-    }
-    #fullscreen-btn:hover{ background:#870184; }
-
-    .welcome{ position:absolute; z-index:250; top:51px; left:22px; width:70%; }
-    .impressum{ position:absolute; bottom:20px; left:22px; font-family:"circular"; z-index:260; font-size:18px; line-height:1.5; }
-    .welcomeMessage{ font-family:"circular"; margin-top:20px; }
-    .link{ text-decoration:none; } .text-link{ color:#789f40; }
-    .flexcta{ width:60%; padding-top:60px; }
-    .cta{ font-family:"circular"; max-width:230px; background:#789f40; padding:15px; color:#fff; text-decoration:none;
-      display:flex; align-items:center; justify-content:center; text-transform:uppercase; font-weight:bold; font-size:18px;
-      transition:background-color 600ms; margin:20px 0 0 0; }
-    .cta:hover{ background:#870184; }
-    .language{ display:flex; width:80px; height:50px; justify-content:space-between; font-size:14px; }
-    .flag-container{ text-align:center; margin:10px 0; }
-    .flag{ width:30px; height:22px; background-size:cover; margin:10px auto; }
-    .flag.en{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
-    .flag.de{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
-    .hotspot-overlay{ width:10px; height:10px; background-size:cover; background-repeat:no-repeat; cursor:pointer; }
-  </style>
-
-  <div id="myContainer"></div>
-  <button id="fullscreen-btn" type="button">Vollbild</button>
-
-  <script data-exec="tpl-desktop">
-    (function(){
-      const container = document.getElementById("myContainer");
-      const btn = document.getElementById("fullscreen-btn");
-
-      // OpenSeadragon init (mit sichtbarer Toolbar)
-      const viewer = OpenSeadragon({
-        id: "myContainer",
-        prefixUrl: "openseadragon/images/",
-        tileSources:{
-          type:"image", width:5787, height:7722, url:"./img/wimmelbildfinal.jpg", minLevel:0, maxLevel:5, buildPyramid:true
-        },
-        showNavigator:true, navigatorPosition:"TOP_RIGHT",
-        defaultZoomLevel:0, showNavigationControl:true,
-        showFullPageControl:false
-      });
-
-      function loadHotspots(xmlFile){
-        fetch(xmlFile).then(r=>r.text()).then(str=>new DOMParser().parseFromString(str,"text/xml"))
-        .then(xml=>{
-          const nodes = xml.getElementsByTagName("HOTSPOT");
-          for (let i=0;i<nodes.length;i++){
-            const n = nodes[i];
-            const x = parseFloat(n.getAttribute("X"));
-            const y = parseFloat(n.getAttribute("Y"));
-            const id = n.getAttribute("ID");
-            const popup = n.getAttribute("POPUP");
-            addOverlay(x,y,id,"./Assets/button-wim.png",popup);
-          }
-        }).catch(console.error);
+      // Falls du willst, kannst du das überschreiben, z. B. per ?desktop=1 / ?mobile=1
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('desktop')) {
+        window.location.href = 'desktop.html';
+        return;
+      }
+      if (params.has('mobile')) {
+        window.location.href = 'mobile.html';
+        return;
       }
 
-      function addOverlay(x,y,id,icon,popupImage){
-        const nx = (x*(5787/14344))/5787;
-        const ny = (y*(7722/19140))/7722*1.3348;
-        const el = document.createElement("div");
-        el.className="hotspot-overlay";
-        el.style.backgroundImage=`url(${icon})`;
-        el.onmouseover = ()=>togglePopup(id,nx,ny,popupImage);
-        el.onmouseout  = ()=>togglePopup(id,nx,ny,popupImage);
-        viewer.addOverlay({element:el,location:new OpenSeadragon.Point(nx,ny),placement:OpenSeadragon.OverlayPlacement.CENTER});
+      if (isMobile || isSmall) {
+        window.location.href = 'mobile.html';
+      } else {
+        window.location.href = 'desktop.html';
       }
-
-      function togglePopup(id,x,y,img){
-        const existing=document.getElementById("popup-"+id);
-        if(existing){ existing.remove(); return; }
-        const popup=document.createElement("div");
-        popup.className="popup"; popup.id="popup-"+id;
-        popup.innerHTML=`<img src="${img}" width="400">`;
-        viewer.addOverlay({element:popup,location:new OpenSeadragon.Point(x,y),placement:OpenSeadragon.OverlayPlacement.BOTTOM});
-      }
-
-      loadHotspots("./src/hotspots.xml");
-
-      // --- Eigenes Vollbild-Handling ---
-      btn.addEventListener("click", async ()=>{
-        const isOpen = container.classList.toggle("open");
-        if(isOpen && container.requestFullscreen){
-          try{ await container.requestFullscreen(); }catch(e){ console.warn(e); }
-        }else if(document.fullscreenElement){
-          document.exitFullscreen?.();
-        }
-      });
-
-      document.addEventListener("fullscreenchange", ()=>{
-        if(!document.fullscreenElement) container.classList.remove("open");
-      });
     })();
   </script>
-
-  <!-- dein restliches Logo/Welcome/Impressum bleibt -->
-  <div class="logo-container">
-    <a href="https://plan-g.at/ueber-uns" target="_blank"><img src="img/signet_bunt.png" class="signet" /></a>
-  </div>
-  <div class="welcome">
-    <a href="https://plan-g.at/ueber-uns" target="_blank"><img src="img/logo.png" class="logo" /></a>
-    <h1 class="welcomeMessage">Die Welt ist ziemlich klein,<br>Gesundheit ziemlich komplex:<br>Viel Spaß beim Entdecken.</h1>
-    <div class="flexcta">
-      <a href="https://plan-g.at/fachthemen/medizin-und-eza" target="_blank" class="link"><div class="cta">Dieses Poster</div></a>
-      <a href="https://plan-g.at/projekte/alle-projekte" target="_blank" class="link"><div class="cta">Unsere Arbeit</div></a>
-      <a href="https://plan-g.at/news-events/informiert-bleiben" target="_blank" class="link"><div class="cta">Informiert bleiben</div></a>
-    </div>
-  </div>
-  <div class="impressum">
-    <div class="language">
-      <div class="flag-container"><a href="https://weltgesundheit.org" class="text-link"><div class="flag de"></div></a></div>
-      <div class="flag-container"><a href="https://weltgesundheit.org/en/" class="text-link"><div class="flag en"></div></a></div>
-    </div>
-    <p>Illustration: Alice Ruzzettu</p>
-    <a href="http://plan-g.at/impressum" class="text-link" target="_blank">Impressum</a>
-  </div>
-</template>
+</head>
+<body style="background:#f3f3f3;font-family:sans-serif;text-align:center;padding-top:20vh;">
+  <h2>Wimmelbild wird geladen …</h2>
+  <p>Falls nichts passiert, <a href="desktop.html">hier zur Desktop-Version</a> oder <a href="mobile.html">zur Mobile-Version</a>.</p>
+</body>
+</html>
