@@ -4,13 +4,10 @@
     <title>Hidden Object Poster - Plan:g</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link rel="icon" type="image/png" href="../../favicon.png" />
-    <!--COPY ME INTO HEAD-->
     <script src="../../openseadragon/openseadragon.min.js"></script>
-    <!--COPY ME INTO HEAD-->
     <script src="../../detect-browser.js"></script>
     <script type="text/javascript">
       var info = getBrowser();
-      console.log(info);
       if (
         info.browser === "Microsoft Edge" ||
         info.browser === "Safari" ||
@@ -27,113 +24,37 @@
       }
       * { margin: 0; padding: 0; }
       html, body { height: 100%; }
-      body {
-        position: relative;
-        overflow: hidden;
-        background-color: #f3f3f3;
-        height: 100%;
-      }
-      #openseadragon-viewer {
-        width: 800px;
-        height: 600px;
-        margin: auto;
-        border: 2px solid black;
-      }
+      body { position: relative; overflow: hidden; background:#f3f3f3; }
       .logo-container {
-        position: absolute;
-        z-index: 1000;
-        top: 25px;
-        left: 25px;
-        opacity: 0;
-        display: none;
-        -webkit-transition: opacity 900ms, diplay 900ms;
-        transition: opacity 900ms, diplay 900ms;
+        position:absolute; z-index:1000; top:25px; left:25px;
+        opacity:0; display:none; transition:opacity 900ms, display 900ms;
       }
-      .logo { width: 250px; padding-bottom: 30px; }
-      .signet { width: 100px; }
-
+      .logo { width:250px; padding-bottom:30px; }
+      .signet { width:100px; }
       #myContainer {
-        width: 100%;
-        height: 100vh;
-        background-color: #769b60;
-        -webkit-clip-path: circle(20vw at center);
-        clip-path: circle(20vw at center);
-        -webkit-transition: left 900ms, -webkit-clip-path 900ms;
-        transition: clip-path 900ms, left 900ms, -webkit-clip-path 900ms;
-        position: absolute;
-        left: 10vw;
-        z-index: 500;
+        width:100%; height:100vh; background:#769b60; position:absolute; left:10vw; z-index:500;
+        clip-path:circle(20vw at center); transition:left 900ms, clip-path 900ms;
       }
-      #myContainer:hover {
-        -webkit-clip-path: circle(100vw at center);
-        clip-path: circle(100vw at center);
-        left: 0vw;
-      }
-      #myContainer:hover ~ .logo-container { opacity: 1; display: block; }
-
-      .welcome {
-        position: absolute;
-        z-index: 250;
-        top: 51px;
-        left: 22px;
-        width: 70%;
-      }
-      .impressum {
-        position: absolute;
-        bottom: 20px;
-        left: 22px;
-        font-family: "circular";
-        z-index: 260;
-        font-size: 18px;
-        line-height: 1.5;
-      }
-      .welcomeMessage { font-family: "circular"; margin-top: 20px; }
-      .link { text-decoration: none; }
-      .text-link { color: #789f40; }
-      .flexcta { width: 60%; padding-top: 60px; }
+      #myContainer:hover { clip-path:circle(100vw at center); left:0; }
+      #myContainer:hover ~ .logo-container { opacity:1; display:block; }
+      .welcome { position:absolute; z-index:250; top:51px; left:22px; width:70%; }
+      .impressum { position:absolute; bottom:20px; left:22px; font-family:"circular"; z-index:260; font-size:18px; line-height:1.5; }
+      .welcomeMessage { font-family:"circular"; margin-top:20px; }
+      .link { text-decoration:none; }
+      .text-link { color:#789f40; }
+      .flexcta { width:60%; padding-top:60px; }
       .cta {
-        font-family: "circular";
-        max-width: 230px;
-        background-color: #789f40;
-        padding: 15px;
-        color: white;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-transform: uppercase;
-        font-weight: bold;
-        font-size: 18px;
-        transition: background-color 600ms;
-        margin: 20px 0 0 0;
+        font-family:"circular"; max-width:230px; background:#789f40; padding:15px; color:#fff; text-decoration:none;
+        display:flex; align-items:center; justify-content:center; text-transform:uppercase; font-weight:bold; font-size:18px;
+        transition:background-color 600ms; margin:20px 0 0 0;
       }
-      .cta:hover { background-color: #870184; }
-
-      .language {
-        display: flex;
-        width: 80px;
-        height: 50px;
-        justify-content: space-between;
-        font-size: 14px;
-      }
-      .flag-container { text-align: center; margin: 10px 0; }
-      .flag {
-        width: 30px; height: 22px;
-        background-size: cover;
-        margin: 10px auto;
-      }
-      .flag.en {
-        background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg");
-      }
-      .flag.de {
-        background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg");
-      }
-      .hotspot-overlay {
-        width: 10px; height: 10px;
-        background-size: cover;
-        background-repeat: no-repeat;
-        cursor: pointer;
-      }
+      .cta:hover { background:#870184; }
+      .language { display:flex; width:80px; height:50px; justify-content:space-between; font-size:14px; }
+      .flag-container { text-align:center; margin:10px 0; }
+      .flag { width:30px; height:22px; background-size:cover; margin:10px auto; }
+      .flag.en { background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
+      .flag.de { background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
+      .hotspot-overlay { width:10px; height:10px; background-size:cover; background-repeat:no-repeat; cursor:pointer; }
     </style>
 
     <!-- Matomo -->
@@ -145,9 +66,9 @@
         var u = "https://www.plan-g.at/sub/piwik/";
         _paq.push(["setTrackerUrl", u + "piwik.php"]);
         _paq.push(["setSiteId", "4"]);
-        var d = document, g = d.createElement("script"), s = d.getElementsByTagName("script")[0];
-        g.type = "text/javascript"; g.async = true; g.defer = true; g.src = u + "piwik.js";
-        s.parentNode.insertBefore(g, s);
+        var d=document,g=d.createElement("script"),s=d.getElementsByTagName("script")[0];
+        g.type="text/javascript"; g.async=true; g.defer=true; g.src=u+"piwik.js";
+        s.parentNode.insertBefore(g,s);
       })();
     </script>
     <!-- End Matomo Code -->
@@ -156,10 +77,10 @@
     <div id="myContainer"></div>
 
     <script>
-      // Base paths (this HTML lives in Assets/en/)
+      // This HTML lives in Assets/en/
       const OSD_PREFIX = "../../openseadragon/images/";
-      const BUTTON_ICON = "../../Assets/button-wim.png";
-      const POPUP_BASE = "../../Assets/popups-en/"; // <-- English popups
+      const BUTTON_ICON = "../../Assets/Skins/button-wim.png";     // <-- fixed
+      const POPUP_BASE  = "../../Assets/popups-en/";               // <-- fixed
 
       var viewer = OpenSeadragon({
         id: "myContainer",
@@ -181,61 +102,47 @@
 
       function loadHotspots(xmlFile) {
         fetch(xmlFile)
-          .then(response => response.text())
-          .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+          .then(r => r.text())
+          .then(str => new DOMParser().parseFromString(str, "text/xml"))
           .then(xml => {
-            let hotspots = xml.getElementsByTagName("HOTSPOT");
-            for (let i = 0; i < hotspots.length; i++) {
-              let x = parseFloat(hotspots[i].getAttribute("X"));
-              let y = parseFloat(hotspots[i].getAttribute("Y"));
-              let id = hotspots[i].getAttribute("ID");
-              let icon = hotspots[i].getAttribute("MEDIA");
-              let popupImage = hotspots[i].getAttribute("POPUP");
+            let hs = xml.getElementsByTagName("HOTSPOT");
+            for (let i = 0; i < hs.length; i++) {
+              let x = parseFloat(hs[i].getAttribute("X"));
+              let y = parseFloat(hs[i].getAttribute("Y"));
+              let id = hs[i].getAttribute("ID");
+              let popupImage = hs[i].getAttribute("POPUP") || "";
 
-              // --- Force English popup assets ---
-              // Accept existing paths, but rewrite any 'popups/' to 'popups-en/'.
-              // Also normalize filenames to 'popup_en_*.png' when only a filename is given.
-              if (popupImage) {
-                if (popupImage.indexOf("/") === -1) {
-                  // only filename given
-                  if (!popupImage.startsWith("popup_en_")) {
-                    popupImage = popupImage.replace(/^popup_/, "popup_en_");
-                  }
-                  popupImage = POPUP_BASE + popupImage;
-                } else {
-                  popupImage = popupImage
-                    .replace("/popups/", "/popups-en/")
-                    .replace(/\/popup_/, "/popup_en_");
-                  // ensure relative to this file
-                  if (!popupImage.startsWith("../")) {
-                    popupImage = "../../" + popupImage.replace(/^\.?\/*/, "");
-                  }
+              // Force English popup path
+              if (popupImage.indexOf("/") === -1) {
+                if (!popupImage.startsWith("popup_en_")) {
+                  popupImage = popupImage.replace(/^popup_/, "popup_en_");
                 }
+                popupImage = POPUP_BASE + popupImage;
               } else {
-                // fallback: build from ID number if present
-                popupImage = POPUP_BASE + "popup_en_" + String(id).padStart(2, "0") + ".png";
+                popupImage = popupImage
+                  .replace("/popups/", "/popups-en/")
+                  .replace(/\/popup_/, "/popup_en_");
+                if (!popupImage.startsWith("../")) {
+                  popupImage = "../../" + popupImage.replace(/^\.?\/*/, "");
+                }
               }
 
               addOverlay(x, y, id, BUTTON_ICON, popupImage);
             }
           })
-          .catch(error => console.error("Error loading XML:", error));
+          .catch(err => console.error("Error loading XML:", err));
       }
 
       function addOverlay(x, y, id, icon, popupImage) {
         const normalizedX = (x * (5787 / 14344)) / 5787;
         const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
 
-        var overlay = document.createElement("div");
+        const overlay = document.createElement("div");
         overlay.className = "hotspot-overlay";
         overlay.style.backgroundImage = `url(${icon})`;
 
-        overlay.onmouseover = function () {
-          togglePopup(id, normalizedX, normalizedY, popupImage);
-        };
-        overlay.onmouseout = function () {
-          togglePopup(id, normalizedX, normalizedY, popupImage);
-        };
+        overlay.onmouseover = () => togglePopup(id, normalizedX, normalizedY, popupImage);
+        overlay.onmouseout  = () => togglePopup(id, normalizedX, normalizedY, popupImage);
 
         viewer.addOverlay({
           element: overlay,
@@ -245,24 +152,24 @@
       }
 
       function togglePopup(id, x, y, popupImage) {
-        let existingPopup = document.getElementById(`popup-${id}`);
-        if (existingPopup) {
-          existingPopup.remove();
-        } else {
-          let popup = document.createElement("div");
-          popup.className = "popup";
-          popup.id = `popup-${id}`;
-          popup.innerHTML = `<img src="${popupImage}" width="400" alt="Info">`;
-
-          viewer.addOverlay({
-            element: popup,
-            location: new OpenSeadragon.Point(x, y),
-            placement: OpenSeadragon.OverlayPlacement.BOTTOM
-          });
+        const existing = document.getElementById(`popup-${id}`);
+        if (existing) {
+          existing.remove();
+          return;
         }
+        const popup = document.createElement("div");
+        popup.className = "popup";
+        popup.id = `popup-${id}`;
+        popup.innerHTML = `<img src="${popupImage}" width="400" alt="Info">`;
+
+        viewer.addOverlay({
+          element: popup,
+          location: new OpenSeadragon.Point(x, y),
+          placement: OpenSeadragon.OverlayPlacement.BOTTOM
+        });
       }
 
-      // Use the existing XML (root /src/)
+      // XML liegt im Root unter /src/
       loadHotspots("../../src/hotspots.xml");
     </script>
 
