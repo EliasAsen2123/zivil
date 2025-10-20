@@ -3,258 +3,92 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Wimmelbild – Plan:g (Auto Mobile/Desktop)</title>
+  <title>Wimmelbild – Plan:g</title>
   <link rel="icon" type="image/png" href="favicon.png" />
-  <style>
-    html, body { height: 100%; margin: 0; background:#f3f3f3; }
-    #appFrame { width: 100%; height: 100vh; border: 0; display:block; }
-    .noscript { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 1rem; }
-  /* Vollbild (Pseudo/Real) – Header/Headline/Footer ausblenden */
-  .app-fs .m-header, .app-fs .m-headline, .app-fs .m-footer { display: none !important; }
-$1
-<body>
-  <noscript>
-    <div class="noscript">
-      JavaScript ist deaktiviert. Bitte aktivieren, um die Seite zu laden.
-    </div>
-  </noscript>
-
-  <iframe id="appFrame" title="Wimmelbild"></iframe>
-
-  <!-- MOBILE-HTML (UNVERÄNDERT BIS AUF STRING-FIXES) -->
-  <script type="text/plain" id="mobile-html">
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Wimmelbild – Plan:g (Mobile)</title>
-  <link rel="icon" type="image/png" href="favicon.png" />
+  
+  <!-- OpenSeadragon -->
   <script src="./openseadragon/openseadragon.min.js"></script>
 
   <style>
+    /* ========= Design Tokens ========= */
     :root{
-      --green:#789f40;
-      --green-dark:#769b60;
-      --accent:#870184;
-      --bg:#f3f3f3;
+      --green:#789f40;         /* CTA/Text-Link */
+      --green-dark:#769b60;    /* Kreis/Canvas BG */
+      --accent:#870184;        /* Hover */
+      --bg:#f3f3f3;            /* Page BG */
       --pad: clamp(14px, 4vw, 20px);
       --hotspot-color:#ffffff;
       --hotspot-border:rgba(0,0,0,.25);
+      --text:#111;
     }
 
+    /* ========= Base ========= */
     *,*::before,*::after{ box-sizing:border-box; }
-    html,body{
-      margin:0;
-      background:var(--bg);
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      color:#111;
-    }
+    html,body{ margin:0; height:100%; background:var(--bg); color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
     a{ color:inherit; text-decoration:none; }
 
-    /* Header + Abstände */
-    .m-header{
-      padding: calc(env(safe-area-inset-top) + 14px) var(--pad) 16px;
-    }
-    .m-header__logo{
-      width: clamp(150px, 48vw, 220px);
-      height:auto;
-      display:block;
-    }
-    .cta{
-      margin-top:10px;
-      font-weight:700;
-      text-transform:uppercase;
-      font-size:clamp(13px,3.7vw,16px);
-      background:var(--green);
-      color:#fff;
-      padding:12px 16px;
-      border-radius:14px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      box-shadow:0 2px 8px rgba(0,0,0,.12);
-    }
+    /* ========= Header ========= */
+    .m-header{ padding: calc(env(safe-area-inset-top) + 14px) var(--pad) 16px; }
+    .m-header__logo{ width: clamp(160px, 28vw, 260px); height:auto; display:block; }
+
+    .m-ctas{ margin-top:14px; display:grid; gap:12px; max-width:720px; grid-template-columns: 1fr; }
+    .cta{ font-weight:700; text-transform:uppercase; font-size:clamp(13px,3.2vw,16px); background:var(--green); color:#fff; padding:12px 16px; border-radius:14px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.12); transition:transform .08s ease, background .2s ease; }
     .cta.square{ border-radius:0; }
     .cta:active{ transform:scale(.98); }
-    .m-ctas{
-      margin-top:14px;
-      display:grid;
-      gap:12px;
-      max-width:360px;
+    .cta:hover{ background:var(--accent); }
+
+    /* Desktop: drei nebeneinander */
+    @media (min-width: 900px){ .m-ctas{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+
+    /* ========= Headline ========= */
+    .m-headline{ padding:12px var(--pad) 0; margin-bottom: clamp(14px, 4vw, 26px); }
+    .m-headline h1{ margin:0; font-size: clamp(18px, 3.6vw, 28px); line-height:1.28; }
+
+    /* ========= Viewer/Kreis ========= */
+    .circle-wrap{ padding: clamp(22px, 4.8vw, 32px) var(--pad) clamp(14px, 3.6vw, 24px); display:grid; place-items:center; }
+    .circle{ width:min(92vw, 1100px); aspect-ratio:1/1; border-radius:0; clip-path:circle(50% at 50% 50%); background:var(--green-dark); overflow:hidden; position:relative; box-shadow:0 8px 28px rgba(0,0,0,.18); }
+    /* Desktop-Hover ähnlich eurer alten Start-Blende (optional sanft) */
+    @media (hover:hover) and (pointer:fine){
+      .circle{ transition: clip-path 900ms ease, border-radius 900ms ease; }
+      .circle:hover{ clip-path:circle(100% at 50% 50%); border-radius:0; }
     }
 
-    .m-headline{
-      padding:12px var(--pad) 0;
-      margin-bottom: clamp(14px, 4vw, 26px);
-    }
-    .m-headline h1{
-      margin:0;
-      font-size:clamp(18px,5.2vw,22px);
-      line-height:1.28;
-    }
+    /* Vollbild-Zustände */
+    .circle.is-fullscreen{ clip-path:none; border-radius:0; width:100vw; height:100vh; background:var(--green-dark); }
+    .pseudo-fs .circle{ clip-path:none!important; border-radius:0!important; position:fixed!important; inset:0!important; width:100vw!important; height:100vh!important; background:var(--green-dark)!important; z-index:998!important; }
 
-    .circle-wrap{
-      padding: clamp(22px, 4.8vw, 32px) var(--pad) clamp(14px, 3.6vw, 24px);
-      display:grid;
-      place-items:center;
-    }
-    .circle{
-      width:min(86vw,520px);
-      aspect-ratio:1/1;
-      border-radius:0;
-      clip-path:circle(50% at 50% 50%);
-      background:var(--green-dark);
-      overflow:hidden;
-      position:relative;
-      box-shadow:0 8px 28px rgba(0,0,0,.18);
-    }
-        .circle.is-fullscreen{
-      clip-path:none;
-      border-radius:0;
-      width:100vw;
-      height:100vh;
-      background:var(--green-dark); 
-    }
-
-    .pseudo-fs .circle{
-    clip-path:none!important;
-    border-radius:0!important;
-    position:fixed!important;
-    inset:0!important;
-    width:100vw!important;
-    height:100vh!important;
-    background:var(--green-dark)!important; 
-    z-index:998!important;
-  }
-
-
-    #myContainer{
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      background:transparent;
-      touch-action:manipulation;
-      z-index:1;
-    }
+    /* OSD-Container */
+    #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
     /* Herz oben rechts */
-    .heart-cta{
-      position:absolute;
-      top:12px;
-      right:12px;
-      z-index:1000;
-      display:block;
-      opacity:1;
-    }
-    .heart-cta img{
-      display:block;
-      width: clamp(36px, 9vw, 72px);
-      height:auto;
-    }
+    .heart-cta{ position:absolute; top:12px; right:12px; z-index:1000; display:block; opacity:1; }
+    .heart-cta img{ display:block; width: clamp(36px, 6vw, 72px); height:auto; }
 
-    /* Hotspots */
-    .hotspot-overlay{
-      width:20px;
-      height:20px;
-      background:var(--hotspot-color);
-      background-size:contain;
-      background-position:center;
-      background-repeat:no-repeat;
-      border:1px solid var(--hotspot-border);
-      border-radius:0;
-      box-shadow:0 1px 4px rgba(0,0,0,.35);
-      cursor:pointer;
-      touch-action:manipulation;
-      opacity:1;
-      z-index:2;
-      transition:opacity .15s ease;
-      -webkit-tap-highlight-color: rgba(0,0,0,0);
-    }
-    .hotspot-overlay.has-icon{
-      appearance:none;
-      -webkit-appearance:none;
-      padding:0;
-      background-color:transparent !important;
-      border:0 !important;
-      box-shadow:none !important;
-      outline:none !important;
-      border-radius:9999px !important;
-      overflow:hidden;
-      background-clip:padding-box;
-    }
-    .hotspot-overlay.has-icon:focus,
-    .hotspot-overlay.has-icon:focus-visible,
-    .hotspot-overlay.has-icon:active{
-      outline:none !important;
-      background-color:transparent !important;
-      border:0 !important;
-      box-shadow:none !important;
-    }
-    .hotspot-overlay.is-hidden{
-      opacity:0;
-      pointer-events:none;
-    }
-    .circle.is-fullscreen .hotspot-overlay,
-    .pseudo-fs .hotspot-overlay{
-      opacity:1;
-      border-width:1px;
-      box-shadow:0 1px 3px rgba(0,0,0,.3);
-    }
+    /* ========= Hotspots ========= */
+    .hotspot-overlay{ width:20px; height:20px; background:var(--hotspot-color); background-size:contain; background-position:center; background-repeat:no-repeat; border:1px solid var(--hotspot-border); border-radius:0; box-shadow:0 1px 4px rgba(0,0,0,.35); cursor:pointer; touch-action:manipulation; opacity:1; z-index:2; transition:opacity .15s ease; -webkit-tap-highlight-color: rgba(0,0,0,0); }
+    .hotspot-overlay.has-icon{ appearance:none; -webkit-appearance:none; padding:0; background-color:transparent !important; border:0 !important; box-shadow:none !important; outline:none !important; border-radius:9999px !important; overflow:hidden; background-clip:padding-box; }
+    .hotspot-overlay.has-icon:focus, .hotspot-overlay.has-icon:focus-visible, .hotspot-overlay.has-icon:active{ outline:none !important; background-color:transparent !important; border:0 !important; box-shadow:none !important; }
+    .hotspot-overlay.is-hidden{ opacity:0; pointer-events:none; }
+    .circle.is-fullscreen .hotspot-overlay, .pseudo-fs .hotspot-overlay{ opacity:1; border-width:1px; box-shadow:0 1px 3px rgba(0,0,0,.3); }
 
-    /* Popup (nur Bild) */
-    .popup{
-      background:transparent;
-      padding:0;
-      border:none;
-      border-radius:0;
-      box-shadow:none;
-      overflow:visible;
-      max-width:90vw;
-      max-height:85vh;
-      z-index:3;
-    }
-    .circle.is-fullscreen .popup{
-      max-width:90vw;
-      max-height:85vh;
-    }
-    .popup img{
-      display:block;
-      width:auto;
-      height:auto;
-      max-width:100%;
-      max-height:100%;
-      object-fit:contain;
-      border-radius:0;
-    }
+    /* ========= Popup (nur Bild) ========= */
+    .popup{ background:transparent; padding:0; border:none; border-radius:0; box-shadow:none; overflow:visible; max-width:90vw; max-height:85vh; z-index:3; }
+    .circle.is-fullscreen .popup{ max-width:90vw; max-height:85vh; }
+    .popup img{ display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; border-radius:0; }
 
-    .m-footer{
-      padding:12px var(--pad) calc(env(safe-area-inset-bottom) + 18px);
-      display:grid;
-      gap:8px;
-    }
+    /* ========= Footer ========= */
+    .m-footer{ padding:12px var(--pad) calc(env(safe-area-inset-bottom) + 18px); display:grid; gap:8px; }
     .language{ display:flex; gap:12px; align-items:center; }
-    .flag{
-      width:28px;
-      height:21px;
-      background-size:cover;
-      background-repeat:no-repeat;
-      border-radius:3px;
-      box-shadow:0 1px 3px rgba(0,0,0,.2);
-    }
-    .flag.de{
-      background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg");
-    }
-    .flag.en{
-      background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg");
-    }
+    .flag{ width:28px; height:21px; background-size:cover; background-repeat:no-repeat; border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+    .flag.de{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg"); }
+    .flag.en{ background-image:url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg"); }
     .text-link{ color:var(--green); }
     .m-footer p{ margin:0; font-size:14px; }
   </style>
 </head>
 
 <body>
+  <!-- Header -->
   <header class="m-header">
     <img src="img/logo.png" alt="Plan:g – logo" class="m-header__logo" />
     <div class="m-ctas">
@@ -264,6 +98,7 @@ $1
     </div>
   </header>
 
+  <!-- Headline -->
   <section class="m-headline">
     <h1>
       Die Welt ist ziemlich klein,<br />
@@ -272,31 +107,44 @@ $1
     </h1>
   </section>
 
+  <!-- Viewer Section -->
   <section class="circle-wrap" aria-label="Interaktives Wimmelbild">
     <div class="circle" id="circle">
-      <!-- Viewer -->
+      <!-- Viewer Root -->
       <div id="myContainer" role="application" aria-label="Wimmelbild Viewer"></div>
 
-      <!-- Herz oben rechts -->
+      <!-- Herz oben rechts (Link) -->
       <a class="heart-cta" href="https://plan-g.at/ueber-uns" target="_blank" rel="noopener" aria-label="Über uns">
         <img src="img/signet_bunt.png" alt="" />
       </a>
     </div>
   </section>
 
+  <!-- Footer / Impressum -->
   <footer class="m-footer">
     <div class="language">
-      <a href="https://weltgesundheit.org" class="text-link" aria-label="Deutsch">
-        <div class="flag de" title="Deutsch"></div>
-      </a>
-      <a href="https://weltgesundheit.org/en/" class="text-link" aria-label="English">
-        <div class="flag en" title="English"></div>
-      </a>
+      <a href="https://weltgesundheit.org" class="text-link" aria-label="Deutsch"><div class="flag de" title="Deutsch"></div></a>
+      <a href="https://weltgesundheit.org/en/" class="text-link" aria-label="English"><div class="flag en" title="English"></div></a>
     </div>
     <p>Illustration: Alice Ruzzettu</p>
     <a href="http://plan-g.at/impressum" class="text-link" target="_blank" rel="noopener">Impressum</a>
   </footer>
 
+  <!-- Matomo (aus eurer Desktop-Version übernommen) -->
+  <script>
+    var _paq = window._paq = window._paq || [];
+    _paq.push(["trackPageView"]);
+    _paq.push(["enableLinkTracking"]);
+    (function() {
+      var u = "https://www.plan-g.at/sub/piwik/";
+      _paq.push(["setTrackerUrl", u + "piwik.php"]);
+      _paq.push(["setSiteId", "4"]);
+      var d = document, g = d.createElement("script"), s = d.getElementsByTagName("script")[0];
+      g.type = "text/javascript"; g.async = true; g.defer = true; g.src = u + "piwik.js"; s.parentNode.insertBefore(g, s);
+    })();
+  </script>
+
+  <!-- App / Viewer Logic -->
   <script>
     /* ====== Pfade ====== */
     const ASSETS_BASE = "./Assets";
@@ -316,7 +164,7 @@ $1
         maxLevel: 5,
         buildPyramid: true
       },
-      showNavigator: false,
+      showNavigator: false,              // dynamisch per MediaQuery gesetzt (s.u.)
       showNavigationControl: true,
       autoHideControls: true,
       blendTime: 0.12,
@@ -331,6 +179,25 @@ $1
       immediateRender: true
     });
 
+    // Navigator nur auf Desktop sichtbar
+    function updateNavigatorVisibility(){
+      const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+      if (viewer.navigator) {
+        viewer.navigator.setVisible(isDesktop);
+        if (isDesktop) viewer.navigator.setPosition('TOP_RIGHT');
+      } else if (isDesktop) {
+        // Falls OSD den Navigator noch nicht gebaut hat, beim nächsten open-Event setzen
+        viewer.addOnceHandler('open', () => {
+          if (viewer.navigator) {
+            viewer.navigator.setVisible(true);
+            viewer.navigator.setPosition('TOP_RIGHT');
+          }
+        });
+      }
+    }
+    viewer.addHandler('open', updateNavigatorVisibility);
+    window.addEventListener('resize', updateNavigatorVisibility);
+
     /* ====== DOM-Refs ====== */
     const circleEl = document.getElementById("circle");
     const containerEl = document.getElementById("myContainer");
@@ -338,7 +205,7 @@ $1
     /* ====== Größen/Koordinaten ====== */
     const SOURCE_W = 5787, SOURCE_H = 7722;
     const AUTHOR_W = 14344, AUTHOR_H = 19140;
-    const Y_EXTRA_SCALE = 1.3348;
+    const Y_EXTRA_SCALE = 1.3348; // aus eurer Rechnung
 
     function normalizeXY(xAuthor, yAuthor) {
       const nx = (xAuthor * (SOURCE_W / AUTHOR_W)) / SOURCE_W;
@@ -369,35 +236,30 @@ $1
     viewer.addHandler("open", () => {
       applyHotspotScale();
       hookOsdFullPageButton();
+      updateNavigatorVisibility();
     });
-    setTimeout(hookOsdFullPageButton, 0); // extra Fallback
+    setTimeout(hookOsdFullPageButton, 0);
 
     /* ====== Vollbild-Logik ====== */
     function supportsFullscreen(){
       return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen);
     }
-
     function enterFullscreen(){
       if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
       if (circleEl.webkitRequestFullscreen) return circleEl.webkitRequestFullscreen();
       if (circleEl.msRequestFullscreen) return circleEl.msRequestFullscreen();
     }
-
     function exitFullscreen(){
       if (document.exitFullscreen) return document.exitFullscreen();
       if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
       if (document.msExitFullscreen) return document.msExitFullscreen();
     }
-
     function setFullscreenClasses(isFs){
       circleEl.classList.toggle("is-fullscreen", isFs);
       if (!supportsFullscreen()){
         document.body.classList.toggle("pseudo-fs", isFs);
       }
-      document.body.classList.toggle("app-fs", isFs);
     }
-    }
-
     function updatePanBounds(isFs){
       if (isFs || document.body.classList.contains("pseudo-fs")){
         viewer.constrainDuringPan = false;
@@ -416,7 +278,6 @@ $1
       updatePanBounds(isFs);
       applyHotspotScale();
     });
-
     document.addEventListener("webkitfullscreenchange", () => {
       const isFs = document.webkitFullscreenElement === circleEl;
       setFullscreenClasses(isFs);
@@ -428,85 +289,43 @@ $1
     containerEl.addEventListener("touchend", async (e) => {
       if (e.touches && e.touches.length === 0){
         const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
-        if (!alreadyFs){
-          e.preventDefault();
-          await ensureFullscreenIfNeeded();
-        }
+        if (!alreadyFs){ e.preventDefault(); await ensureFullscreenIfNeeded(); }
       }
     }, { passive: false });
-
     containerEl.addEventListener("click", async () => {
       const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
-      if (!alreadyFs){
-        await ensureFullscreenIfNeeded();
-      }
+      if (!alreadyFs){ await ensureFullscreenIfNeeded(); }
     });
 
     function ensureFullscreenIfNeeded(){
       const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
       if (alreadyFs) return Promise.resolve();
-
       if (supportsFullscreen()){
         return new Promise((resolve) => {
-          const onChange = () => {
-            document.removeEventListener("fullscreenchange", onChange);
-            resolve();
-          };
-          document.addEventListener("fullscreenchange", onChange);
-          enterFullscreen();
+          const onChange = () => { document.removeEventListener("fullscreenchange", onChange); resolve(); };
+          document.addEventListener("fullscreenchange", onChange); enterFullscreen();
         });
       }
-
-      return new Promise((resolve) => {
-        setFullscreenClasses(true);
-        updatePanBounds(true);
-        document.body.classList.add('app-fs');
-        resolve();
-      });
+      return new Promise((resolve) => { setFullscreenClasses(true); updatePanBounds(true); resolve(); });
     }
 
     /* === Fullscreen-Button neben dem Haus: Touch & Click zuverlässig toggeln === */
     function hookOsdFullPageButton(){
       const root = viewer.container || document.getElementById("myContainer");
       if (!root) return;
-
-      const btn = root.querySelector(
-        '.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]'
-      );
+      const btn = root.querySelector('.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]');
       if (!btn || btn.__pgHooked) return;
-
       btn.__pgHooked = true;
-
       btn.style.touchAction = 'manipulation';
       btn.style.webkitTapHighlightColor = 'rgba(0,0,0,0)';
-
       const handler = (e) => {
-        e.preventDefault?.();
-        e.stopPropagation?.();
-        e.stopImmediatePropagation?.();
-
-        const inFs =
-          (document.fullscreenElement === circleEl) ||
-          document.body.classList.contains("pseudo-fs");
-
-        if (inFs){
-          if (supportsFullscreen()) {
-            exitFullscreen();
-          } else {
-            setFullscreenClasses(false);
-            updatePanBounds(false);
-            applyHotspotScale();
-          }
-        } else {
-          ensureFullscreenIfNeeded().then(() => {
-            applyHotspotScale();
-          });
-        }
+        e.preventDefault?.(); e.stopPropagation?.(); e.stopImmediatePropagation?.();
+        const inFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
+        if (inFs){ if (supportsFullscreen()) { exitFullscreen(); } else { setFullscreenClasses(false); updatePanBounds(false); applyHotspotScale(); } }
+        else { ensureFullscreenIfNeeded().then(() => { applyHotspotScale(); }); }
       };
-
       const optsTouch = { capture: true, passive: false };
       const optsPointer = { capture: true };
-
       btn.addEventListener("touchstart", handler, optsTouch);
       btn.addEventListener("touchend", handler, optsTouch);
       btn.addEventListener("pointerup", handler, optsPointer);
@@ -519,7 +338,6 @@ $1
 
     function addOverlay(x, y, id, iconUrl, popupImage, popupText, popupTitle, colorValue, offsetX = 0, offsetY = 0) {
       const { nx, ny } = normalizeXY(x, y);
-
       const overlay = document.createElement("button");
       overlay.className = "hotspot-overlay";
       overlay.type = "button";
@@ -535,38 +353,29 @@ $1
       }
 
       const open = async (e) => {
-        e.stopPropagation();
-        e.preventDefault?.();
+        e.stopPropagation(); e.preventDefault?.();
         await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlay, offsetX, offsetY);
       };
       overlay.addEventListener("touchend", open, { passive: false });
       overlay.addEventListener("click", open, { passive: true });
 
-      viewer.addOverlay({
-        element: overlay,
-        location: new OpenSeadragon.Point(nx, ny),
-        placement: OpenSeadragon.OverlayPlacement.CENTER
-      });
+      viewer.addOverlay({ element: overlay, location: new OpenSeadragon.Point(nx, ny), placement: OpenSeadragon.OverlayPlacement.CENTER });
     }
 
     async function handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlayEl, offsetX = 0, offsetY = 0){
       await ensureFullscreenIfNeeded();
       focusOn(nx, ny, 1.6);
-
-      if (openPopupId === id) {
-        closePopup(id);
-        return;
-      }
+      if (openPopupId === id) { closePopup(id); return; }
       maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, overlayEl, true, offsetX, offsetY);
     }
 
     function resolvePopupSrc(name){
       if (!name) return null;
-      if (name.includes("/")) return name;
-      return `${POPUPS_DIRS[0]}/${name}`;
+      if (name.includes("/")) return name; // absoluter/relativer Pfad schon gegeben
+      return `${POPUPS_DIRS[0]}/${name}`;    // Standardverzeichnis
     }
 
-    // Nur Bild rendern
+    // Nur Bild rendern (wie mobile Version)
     function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers = false, offsetX = 0, offsetY = 0){
       if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
       if (document.getElementById(`popup-${id}`)) return;
@@ -575,24 +384,14 @@ $1
 
       const imgSrc = resolvePopupSrc(popupImage);
       const popup = document.createElement("div");
-      popup.className = "popup";
-      popup.id = `popup-${id}`;
-      popup.role = "dialog";
-
-      const markup = imgSrc ? `<img src="${imgSrc}" alt="">` : "";
-      popup.innerHTML = markup;
+      popup.className = "popup"; popup.id = `popup-${id}`; popup.role = "dialog";
+      popup.innerHTML = imgSrc ? `<img src="${imgSrc}" alt="">` : "";
       popup.addEventListener("click", e => e.stopPropagation());
-
       if (offsetX || offsetY) popup.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
 
-      viewer.addOverlay({
-        element: popup,
-        location: new OpenSeadragon.Point(x, y),
-        placement: OpenSeadragon.OverlayPlacement.BOTTOM
-      });
+      viewer.addOverlay({ element: popup, location: new OpenSeadragon.Point(x, y), placement: OpenSeadragon.OverlayPlacement.BOTTOM });
 
       openPopupId = id;
-
       if (popupTimers.has(id)) clearTimeout(popupTimers.get(id));
       const t = setTimeout(() => { closePopup(id); }, 10000);
       popupTimers.set(id, t);
@@ -601,14 +400,9 @@ $1
     function closePopup(id){
       const el = document.getElementById(`popup-${id}`);
       if (el) el.remove();
-
       const dot = document.querySelector(`.hotspot-overlay[data-id="${CSS.escape(id)}"]`);
       if (dot) dot.classList.remove("is-hidden");
-
-      if (popupTimers.has(id)) {
-        clearTimeout(popupTimers.get(id));
-        popupTimers.delete(id);
-      }
+      if (popupTimers.has(id)) { clearTimeout(popupTimers.get(id)); popupTimers.delete(id); }
       if (openPopupId === id) openPopupId = null;
     }
 
@@ -623,7 +417,7 @@ $1
             const node = nodes[i];
             const x = parseFloat(node.getAttribute("X"));
             const y = parseFloat(node.getAttribute("Y"));
-            const id = node.getAttribute("ID"); /* <-- FIX HIER */
+            const id = node.getAttribute("ID");
 
             const iconUrl =
               node.getAttribute("ICON") ||
@@ -643,13 +437,7 @@ $1
             const popupTitle = ""; // nur Bild
 
             const colorValue =
-              node.getAttribute("COLOR") ||
-              node.getAttribute("COLOUR") ||
-              node.getAttribute("FARBE") ||
-              node.getAttribute("FILL") ||
-              node.getAttribute("BG") ||
-              node.getAttribute("DOTCOLOR") ||
-              null;
+              node.getAttribute("COLOR") || node.getAttribute("COLOUR") || node.getAttribute("FARBE") || node.getAttribute("FILL") || node.getAttribute("BG") || node.getAttribute("DOTCOLOR") || null;
 
             const offsetX = parseInt(node.getAttribute("POPOFFSETX") || "0", 10);
             const offsetY = parseInt(node.getAttribute("POPOFFSETY") || "0", 10);
@@ -671,378 +459,6 @@ $1
     }
 
     window.addEventListener("orientationchange", () => setTimeout(applyHotspotScale, 50));
-  </script>
-</body>
-</html>
-</script>
-
-  <!-- DESKTOP-HTML (UNVERÄNDERT BIS AUF STRING-FIXES) -->
-  <script type="text/plain" id="desktop-html">
-<!DOCTYPE html>
-<html xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml" lang="en">
-  <head>
-    <title>Wimmelbild - Plan:g</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <!--COPY ME INTO HEAD-->
-    <script src="./openseadragon/openseadragon.min.js"></script>
-    <!--COPY ME INTO HEAD-->
-    <script src="detect-browser.js"></script>
-    <script type="text/javascript">
-      var info = getBrowser();
-      console.log(info);
-      if (
-        info.browser === "Microsoft Edge" ||
-        info.browser === "Safari" ||
-        info.browser === "Internet Explorer"
-      ) {
-        window.location = "index_ie.html";
-      }
-    </script>
-    <style>
-      @font-face {
-        font-family: "circular";
-        src: url("src/lineto-circular-book.woff") format("woff");
-        font-weight: normal;
-      }
-      * {
-        margin: 0px;
-        padding: 0px;
-      }
-      html {
-        height: 100%;
-      }
-      body {
-        position: relative;
-        overflow: hidden;
-        background-color: #f3f3f3;
-        height: 100%;
-      }
-      #openseadragon-viewer {
-        width: 800px;
-        height: 600px;
-        margin: auto;
-        border: 2px solid black;
-      }
-      .logo-container {
-        position: absolute;
-        z-index: 1000;
-        top: 25px;
-        left: 25px;
-        opacity: 0;
-        display: none;
-        -webkit-transition: opacity 900ms, diplay 900ms;
-        transition: opacity 900ms, diplay 900ms;
-      }
-      .logo {
-        width: 250px;
-        padding-bottom: 30px;
-      }
-      .signet {
-        width: 100px;
-      }
-      #myContainer {
-        width: 100%;
-        height: 100vh;
-        background-color: #769b60;
-        -webkit-clip-path: circle(20vw at center);
-        clip-path: circle(20vw at center);
-        -webkit-transition: left 900ms, -webkit-clip-path 900ms;
-        transition: left 900ms, -webkit-clip-path 900ms;
-        transition: clip-path 900ms, left 900ms;
-        transition: clip-path 900ms, left 900ms, -webkit-clip-path 900ms;
-        position: absolute;
-        left: 10vw;
-        z-index: 500;
-      }
-      #myContainer:hover {
-        -webkit-clip-path: circle(100vw at center);
-        clip-path: circle(100vw at center);
-        left: 0vw;
-      }
-      #myContainer:hover ~ .logo-container {
-        opacity: 1;
-        display: block;
-      }
-      .welcome {
-        position: absolute;
-        z-index: 250;
-        top: 51px;
-        left: 22px;
-        width: 70%;
-      }
-      .impressum {
-        position: absolute;
-        bottom: 20px;
-        left: 22px;
-        font-family: "circular";
-        z-index: 260;
-        font-size: 18px;
-        line-height: 1.5;
-      }
-      .welcomeMessage {
-        font-family: "circular";
-        margin-top: 20px;
-      }
-      .link {
-        text-decoration: none;
-      }
-      .text-link {
-        color: #789f40;
-      }
-      .flexcta {
-        width: 60%;
-        padding-top: 60px;
-      }
-      .cta {
-        font-family: "circular";
-        max-width: 230px;
-        background-color: #789f40;
-        padding: 15px;
-        color: white;
-        text-decoration: none;
-        display: -webkit-box;
-        display: -ms-flexbox;
-        display: flex;
-        -webkit-box-align: center;
-        -ms-flex-align: center;
-        align-items: center;
-        -webkit-box-pack: center;
-        -ms-flex-pack: center;
-        justify-content: center;
-        text-transform: uppercase;
-        font-weight: bold;
-        font-size: 18px;
-        -webkit-transition: background-color 600ms;
-        transition: background-color 600ms;
-        margin: 20px;
-        margin-left: 0px;
-        margin-top: 0px;
-      }
-      .cta:hover {
-        background-color: #870184;
-      }
-      .language {
-        display: -webkit-box;
-        display: -ms-flexbox;
-        display: flex;
-        width: 80px;
-        height: 50px;
-        -webkit-box-pack: justify;
-        -ms-flex-pack: justify;
-        justify-content: space-between;
-        font-size: 14px;
-      }
-      .flag-container {
-        text-align: center;
-        margin: 10px 0px;
-      }
-      .flag {
-        width: 30px;
-        height: 22px;
-        background-size: cover;
-        margin: 10px auto;
-      }
-      .flag.en {
-        background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/gb.svg");
-      }
-      .flag.de {
-        background-image: url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.1/flags/4x3/at.svg");
-      }
-      .hotspot-overlay {
-        width: 10px;
-        height: 10px;
-        background-size: cover;  /* Ensure the image fits the div */
-        background-repeat: no-repeat;
-        cursor: pointer;        /* Makes the hotspot clickable */
-      }
-    </style>
-    <!-- Matomo -->
-    <script type="text/javascript">
-      var _paq = window._paq || [];
-      /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
-      _paq.push(["trackPageView"]);
-      _paq.push(["enableLinkTracking"]);
-      (function() {
-        var u = "https://www.plan-g.at/sub/piwik/";
-        _paq.push(["setTrackerUrl", u + "piwik.php"]);
-        _paq.push(["setSiteId", "4"]);
-        var d = document,
-          g = d.createElement("script"),
-          s = d.getElementsByTagName("script")[0];
-        g.type = "text/javascript";
-        g.async = true;
-        g.defer = true;
-        g.src = u + "piwik.js";
-        s.parentNode.insertBefore(g, s);
-      })();
-    </script>
-    <!-- End Matomo Code -->
-  </head>
-  <body>
-    <div id="myContainer"></div>
-    <script>
-      var viewer = OpenSeadragon({
-        id: "myContainer",
-        prefixUrl: "openseadragon/images/",
-        tileSources: {
-          type: "image",
-          width: 5787,
-          height: 7722,
-          url: "./img/wimmelbildfinal.jpg",
-          minLevel: 0,
-          maxLevel: 5,
-          buildPyramid: true,
-
-        },
-        showNavigator: true, 
-        navigatorPosition: "TOP_RIGHT",
-        defaultZoomLevel: 0,
-        showNavigationControl: true,
-      });
-
-      function loadHotspots(xmlFile) {
-        fetch(xmlFile)
-        .then(response => response.text())
-        .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
-        .then(xml => {
-            let hotspots = xml.getElementsByTagName("HOTSPOT");
-            for (let i = 0; i < hotspots.length; i++) {
-              let x = parseFloat(hotspots[i].getAttribute("X"));
-              let y = parseFloat(hotspots[i].getAttribute("Y"));
-              let id = hotspots[i].getAttribute("ID");
-              let icon = hotspots[i].getAttribute("MEDIA");
-              let popupImage = hotspots[i].getAttribute("POPUP");
-                
-
-              addOverlay(x, y, id, "./Assets/button-wim.png", popupImage);
-            }
-            
-        })
-        .catch(error => console.error("Error loading XML:", error));
-      }
-
-      function addOverlay(x, y, id, icon, popupImage) {        
-        const normalizedX = (x * (5787 / 14344)) / 5787;
-        const normalizedY = (y * (7722 / 19140)) / 7722 * 1.3348;
-
-        var overlay = document.createElement("div");
-        overlay.className = "hotspot-overlay";
-        overlay.style.backgroundImage = `url(${icon})`;
-
-        overlay.onmouseover = function () {
-          togglePopup(id, normalizedX, normalizedY, popupImage);
-        };
-        overlay.onmouseout = function () {
-          togglePopup(id, normalizedX, normalizedY, popupImage);
-        };
-
-        viewer.addOverlay({
-          element: overlay,
-          location: new OpenSeadragon.Point(normalizedX, normalizedY),
-          placement: OpenSeadragon.OverlayPlacement.CENTER
-        });
-      }
-
-      function togglePopup(id, x, y, popupImage) {
-        let existingPopup = document.getElementById(`popup-${id}`);
-
-        if(existingPopup) {
-          existingPopup.remove();
-        } else {
-          let popup = document.createElement("div");
-          popup.className = "popup";
-          popup.id = `popup-${id}`;
-          popup.innerHTML = `<img src="${popupImage}" width="400">`;
-
-          viewer.addOverlay({
-            element: popup,
-            location: new OpenSeadragon.Point(x, y),
-            placement:OpenSeadragon.OverlayPlacement.BOTTOM
-          });
-        }
-      }
-      loadHotspots("./src/hotspots.xml");
-    </script>
-    <div class="logo-container">
-      <a href="https://plan-g.at/ueber-uns" target="blank">
-        <img src="img/signet_bunt.png" class="signet"
-      /></a>
-    </div>
-    <div class="welcome">
-      <a href="https://plan-g.at/ueber-uns" target="_blank">
-        <img src="img/logo.png" class="logo"
-      /></a>
-      <h1 class="welcomeMessage">
-        Die Welt ist ziemlich klein,<br />
-        Gesundheit ziemlich komplex:<br />
-        Viel Spaß beim Entdecken.
-      </h1>
-      <div class="flexcta">
-        <a
-          href="https://plan-g.at/fachthemen/medizin-und-eza"
-          target="_blank"
-          class="link"
-        >
-          <div class="cta">
-            Dieses Poster
-          </div>
-        </a>
-        <a
-          href="https://plan-g.at/projekte/alle-projekte"
-          target="_blank"
-          class="link"
-        >
-          <div class="cta">
-            Unsere Arbeit
-          </div>
-        </a>
-        <a
-          href="https://plan-g.at/news-events/informiert-bleiben"
-          target="_blank"
-          class="link"
-        >
-          <div class="cta">
-            Informiert bleiben
-          </div>
-        </a>
-      </div>
-    </div>
-    <div class="impressum">
-      <div class="language">
-        <div class="flag-container">
-          <a href="https://weltgesundheit.org" class="text-link"
-            ><div class="flag de"></div
-          ></a>
-        </div>
-        <div class="flag-container">
-          <a href="https://weltgesundheit.org/en/" class="text-link">
-            <div class="flag en"></div>
-          </a>
-        </div>
-      </div>
-      <p>Illustration: Alice Ruzzettu</p>
-      <a href="http://plan-g.at/impressum" class="text-link" target="_blank"
-        >Impressum</a
-      >
-    </div>
-  </body>
-</html>
-</script>
-
-  <script>
-    (function() {
-      const isMobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isSmallViewport = Math.max(window.innerWidth, window.innerHeight) <= 820;
-      const useMobile = isMobileUA || isSmallViewport;
-
-      const tpl = document.getElementById(useMobile ? 'mobile-html' : 'desktop-html');
-      const iframe = document.getElementById('appFrame');
-
-      // Inhalt 1:1 in das iframe laden (srcdoc, damit keine Kollisionen im Parent-DOM entstehen)
-      const raw = tpl.textContent; 
-      iframe.srcdoc = raw;
-    })();
   </script>
 </body>
 </html>
