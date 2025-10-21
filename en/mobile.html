@@ -22,7 +22,6 @@
     html,body{ margin:0; background:var(--bg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:#111; }
     a{ color:inherit; text-decoration:none; }
 
-    /* Header */
     .m-header{ padding: calc(env(safe-area-inset-top) + 14px) var(--pad) 16px; }
     .m-header__logo{ width: clamp(150px, 48vw, 220px); height:auto; display:block; }
     .cta{ margin-top:10px; font-weight:700; text-transform:uppercase; font-size:clamp(13px,3.7vw,16px); background:var(--green); color:#fff; padding:12px 16px; border-radius:14px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.12); }
@@ -33,18 +32,15 @@
     .m-headline{ padding:12px var(--pad) 0; margin-bottom:clamp(14px,4vw,26px); }
     .m-headline h1{ margin:0; font-size:clamp(18px,5.2vw,22px); line-height:1.28; }
 
-    /* Circle + viewer */
     .circle-wrap{ padding:clamp(22px,4.8vw,32px) var(--pad) clamp(14px,3.6vw,24px); display:grid; place-items:center; }
     .circle{ width:min(86vw,520px); aspect-ratio:1/1; clip-path:circle(50% at 50% 50%); background:var(--green-dark); overflow:hidden; position:relative; box-shadow:0 8px 28px rgba(0,0,0,.18); }
     .circle.is-fullscreen{ clip-path:none; border-radius:0; width:100vw; height:100vh; background:var(--green-dark); }
     .pseudo-fs .circle{ clip-path:none!important; border-radius:0!important; position:fixed!important; inset:0!important; width:100vw!important; height:100vh!important; background:var(--green-dark)!important; z-index:998!important; }
     #myContainer{ position:absolute; inset:0; width:100%; height:100%; background:transparent; touch-action:manipulation; z-index:1; }
 
-    /* Heart (top-right) */
     .heart-cta{ position:absolute; top:12px; right:12px; z-index:1000; display:block; }
     .heart-cta img{ display:block; width:clamp(36px,9vw,72px); height:auto; }
 
-    /* Hotspots */
     .hotspot-overlay{
       width:20px; height:20px;
       background:var(--hotspot-color);
@@ -58,13 +54,11 @@
     .hotspot-overlay.has-icon{
       background-color:transparent!important; border:0!important; box-shadow:none!important;
     }
-    .hotspot-overlay.is-hidden{ opacity:0; pointer-events:none; }
+    .hotspot-overlay.is-hidden{ opacity:0; pointer-events:none; } /* wird NICHT mehr verwendet */
 
-    /* Popup (image only) */
     .popup{ background:transparent; padding:0; border:none; border-radius:0; box-shadow:none; overflow:visible; max-width:90vw; max-height:85vh; z-index:3; }
     .popup img{ display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; }
 
-    /* Footer */
     .m-footer{ padding:12px var(--pad) calc(env(safe-area-inset-bottom) + 18px); display:grid; gap:8px; }
     .language{ display:flex; gap:12px; align-items:center; }
     .flag{ width:28px; height:21px; background-size:cover; border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,.2); }
@@ -96,7 +90,6 @@
   <section class="circle-wrap" aria-label="Interactive hidden object picture">
     <div class="circle" id="circle">
       <div id="myContainer" role="application" aria-label="Wimmelbild viewer"></div>
-
       <a class="heart-cta" href="https://plan-g.at/ueber-uns" target="_blank" rel="noopener" aria-label="About us">
         <img src="../img/signet_bunt.png" alt="" />
       </a>
@@ -113,73 +106,60 @@
   </footer>
 
   <script>
-    /* ================= Paths (aus /en eine Ebene rauf) ================= */
+    /* ===== Paths (aus /en eine Ebene rauf) ===== */
     const ASSETS_BASE = "../Assets";
-    const ICON_DEFAULT = `${ASSETS_BASE}/button-wim.png`;           // ../Assets/button-wim.png
-    const POPUPS_DIR   = `${ASSETS_BASE}/popups-en`;                 // ../Assets/popups-en
+    const ICON_DEFAULT = `${ASSETS_BASE}/button-wim.png`;
+    const POPUPS_DIR   = `${ASSETS_BASE}/popups-en`;
 
-    // Pfad-Helper: alles was ohne ../ kommt (Assets/, img/, openseadragon/) wird auf ../... umgebogen
     function normalizeAssetPath(p){
       if (!p) return "";
       if (/^https?:\/\//i.test(p)) return p;
       if (p.startsWith("../")) return p;
       if (p.startsWith("./")) p = p.slice(2);
-      if (p.startsWith("Assets/") || p.startsWith("img/") || p.startsWith("openseadragon/")) {
-        return "../" + p;
-      }
+      if (p.startsWith("Assets/") || p.startsWith("img/") || p.startsWith("openseadragon/")) return "../" + p;
       return p;
     }
     function basename(p){ return p ? p.split(/[\\/]/).pop() : ""; }
 
-    /* ================= OpenSeadragon ================= */
+    /* ===== OpenSeadragon ===== */
     const viewer = OpenSeadragon({
       id: "myContainer",
       prefixUrl: "../openseadragon/images/",
-      tileSources: {
-        type: "image",
-        width: 5787, height: 7722,
-        url: "../img/wimmelbildfinal.jpg"
-      },
-      showNavigator: false,
-      showNavigationControl: true,
-      autoHideControls: true,
-      visibilityRatio: 0.95,
-      constrainDuringPan: true,
-      minZoomImageRatio: 1,
-      maxZoomPixelRatio: 2.0
+      tileSources: { type:"image", width:5787, height:7722, url:"../img/wimmelbildfinal.jpg" },
+      showNavigator:false,
+      showNavigationControl:true,
+      autoHideControls:true,
+      visibilityRatio:0.95,
+      constrainDuringPan:true,
+      minZoomImageRatio:1,
+      maxZoomPixelRatio:2.0
     });
 
     const circleEl    = document.getElementById("circle");
     const containerEl = document.getElementById("myContainer");
 
-    /* ================= Größen/Koordinaten ================= */
-    const SOURCE_W = 5787, SOURCE_H = 7722;
-    const AUTHOR_W = 14344, AUTHOR_H = 19140;
-    const Y_EXTRA_SCALE = 1.3348;
-
-    function normalizeXY(xAuthor, yAuthor) {
-      const nx = (xAuthor * (SOURCE_W / AUTHOR_W)) / SOURCE_W;
-      const ny = (yAuthor * (SOURCE_H / AUTHOR_H)) / SOURCE_H * Y_EXTRA_SCALE;
-      return { nx, ny };
+    /* ===== Größen/Koordinaten ===== */
+    const SOURCE_W=5787, SOURCE_H=7722, AUTHOR_W=14344, AUTHOR_H=19140, Y_EXTRA_SCALE=1.3348;
+    function normalizeXY(xAuthor,yAuthor){
+      const nx=(xAuthor*(SOURCE_W/AUTHOR_W))/SOURCE_W;
+      const ny=(yAuthor*(SOURCE_H/AUTHOR_H))/SOURCE_H * Y_EXTRA_SCALE;
+      return {nx,ny};
     }
 
-    /* ================= Responsive Hotspot-Größe ================= */
-    function getHotspotSizeParams(){
-      if (window.matchMedia("(max-width: 640px)").matches) return { BASE: 14, MIN: 10, MAX: 18 };
-      return { BASE: 20, MIN: 14, MAX: 24 };
-    }
+    /* ===== Responsive Hotspot-Größe ===== */
+    function getHotspotSizeParams(){ return window.matchMedia("(max-width: 640px)").matches ? {BASE:14,MIN:10,MAX:18}:{BASE:20,MIN:14,MAX:24}; }
     function applyHotspotScale(){
-      const { BASE, MIN, MAX } = getHotspotSizeParams();
-      const z = viewer.viewport.getZoom(true);
-      const isFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
-      const s = Math.max(MIN, Math.min(MAX, BASE * (isFs ? 0.98 : 1) * (0.90 + (z - 1) * 0.12)));
-      document.querySelectorAll(".hotspot-overlay").forEach(el => { el.style.width = `${s}px`; el.style.height = `${s}px`; });
+      const {BASE,MIN,MAX}=getHotspotSizeParams();
+      const z=viewer.viewport.getZoom(true);
+      const fs=(document.fullscreenElement===circleEl)||document.body.classList.contains("pseudo-fs");
+      const s=Math.max(MIN,Math.min(MAX,BASE*(fs?0.98:1)*(0.90+(z-1)*.12)));
+      document.querySelectorAll(".hotspot-overlay").forEach(el=>{el.style.width=`${s}px`;el.style.height=`${s}px`;});
     }
-    viewer.addHandler("zoom", applyHotspotScale);
-    viewer.addHandler("resize", applyHotspotScale);
-    viewer.addHandler("open", applyHotspotScale);
+    viewer.addHandler("zoom",applyHotspotScale);
+    viewer.addHandler("resize",applyHotspotScale);
+    viewer.addHandler("open",applyHotspotScale);
 
-    /* ================= Fullscreen wie im Original ================= */
+    /* ===== Fullscreen ===== */
     function supportsFullscreen(){ return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen); }
     function enterFullscreen(){
       if (circleEl.requestFullscreen) return circleEl.requestFullscreen();
@@ -191,106 +171,111 @@
       if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
       if (document.msExitFullscreen) return document.msExitFullscreen();
     }
-    function setFullscreenClasses(f){ circleEl.classList.toggle("is-fullscreen", f); if (!supportsFullscreen()) document.body.classList.toggle("pseudo-fs", f); }
-    function updatePanBounds(f){ viewer.constrainDuringPan = !f; viewer.viewport.setVisibilityRatio(f?0.2:0.95); viewer.minZoomImageRatio = f?0.8:1; }
-    document.addEventListener("fullscreenchange", ()=>{ const f=document.fullscreenElement===circleEl; setFullscreenClasses(f); updatePanBounds(f); applyHotspotScale(); });
+    function setFullscreenClasses(f){ circleEl.classList.toggle("is-fullscreen",f); if(!supportsFullscreen())document.body.classList.toggle("pseudo-fs",f); }
+    function updatePanBounds(f){ viewer.constrainDuringPan=!f; viewer.viewport.setVisibilityRatio(f?0.2:0.95); viewer.minZoomImageRatio=f?0.8:1; }
+    document.addEventListener("fullscreenchange",()=>{const f=document.fullscreenElement===circleEl; setFullscreenClasses(f); updatePanBounds(f); applyHotspotScale();});
 
-    // Klick/Tap → optional Fullscreen (wie DE)
-    containerEl.addEventListener("click", async ()=>{
-      const f = (document.fullscreenElement===circleEl) || document.body.classList.contains("pseudo-fs");
-      if (!f) { try { await enterFullscreen(); } catch(_){} }
+    // **Neu:** überall auf die Zeichenfläche tippen → Vollbild (auch iOS)
+    const goFs = (e) => {
+      // nicht triggern, wenn auf einen Marker oder Popup getippt wurde
+      const t = e.target;
+      if (t.closest('.hotspot-overlay') || t.closest('.popup')) return;
+      const isFs = (document.fullscreenElement===circleEl) || document.body.classList.contains('pseudo-fs');
+      if (!isFs) { try { enterFullscreen(); } catch(_){} }
+    };
+    ['touchend','pointerup','click'].forEach(type=>{
+      containerEl.addEventListener(type, goFs, {capture:true, passive:false});
+      viewer.container.addEventListener(type, goFs, {capture:true, passive:false});
     });
 
-    /* ================= Hotspots + Popups ================= */
-    let openPopupId = null;
-    const popupTimers = new Map();
+    /* ===== Hotspots + Popups ===== */
+    let openPopupId=null;
+    const popupTimers=new Map();
 
-    // Popup-Bilder IMMER aus ../Assets/popups-en/<file>
     function resolvePopupSrc(name){
       if (!name) return null;
-      const file = basename(name);
+      const file=basename(name);
       return `${POPUPS_DIR}/${file}`;
     }
 
-    function addOverlay(x, y, id, iconUrl, popupImage){
-      const { nx, ny } = normalizeXY(x, y);
-      const overlay = document.createElement("button");
-      overlay.className = "hotspot-overlay";
-      overlay.type = "button";
-      overlay.dataset.id = id;
+    function addOverlay(x,y,id,iconUrl,popupImage){
+      const {nx,ny}=normalizeXY(x,y);
+      const overlay=document.createElement("button");
+      overlay.className="hotspot-overlay";
+      overlay.type="button";
+      overlay.dataset.id=id;
 
-      // sichtbarer Fallback-Punkt (falls Icon nicht lädt)
-      overlay.style.backgroundColor = "white";
-      overlay.style.border = "1px solid rgba(0,0,0,.35)";
+      // sichtbarer Fallback (falls Icon nicht lädt)
+      overlay.style.backgroundColor="white";
+      overlay.style.border="1px solid rgba(0,0,0,.35)";
 
-      // Icon-Pfad aus XML korrigieren und testweise laden
-      const candidate = normalizeAssetPath(iconUrl);
-      const finalIcon = candidate || ICON_DEFAULT; // ../Assets/button-wim.png
+      const candidate=normalizeAssetPath(iconUrl);
+      const finalIcon=candidate || ICON_DEFAULT;
 
       if (finalIcon){
-        const probe = new Image();
-        probe.onload = () => {
+        const probe=new Image();
+        probe.onload=()=>{
           overlay.classList.add("has-icon");
-          overlay.style.backgroundImage = `url("${finalIcon}")`;
-          overlay.style.backgroundColor = "transparent";
-          overlay.style.border = "0";
+          overlay.style.backgroundImage=`url("${finalIcon}")`;
+          overlay.style.backgroundColor="transparent";
+          overlay.style.border="0";
         };
-        // wenn fehler → Fallback bleibt sichtbar (weißer Punkt mit Rand)
-        probe.src = finalIcon;
+        probe.src=finalIcon;
       }
 
-      const open = (e) => {
+      const onTap=(e)=>{
         e.stopPropagation();
-        maybeOpenPopup(id, nx, ny, popupImage, overlay, true);
+        if (openPopupId===id){ closePopup(id); return; }
+        maybeOpenPopup(id,nx,ny,popupImage,overlay,true);
       };
-      overlay.addEventListener("touchend", open, { passive:false });
-      overlay.addEventListener("click", open, { passive:true });
+      overlay.addEventListener("touchend",onTap,{passive:false});
+      overlay.addEventListener("pointerup",onTap,{passive:true});
+      overlay.addEventListener("click",onTap,{passive:true});
 
-      viewer.addOverlay({ element: overlay, location: new OpenSeadragon.Point(nx, ny), placement: OpenSeadragon.OverlayPlacement.CENTER });
+      viewer.addOverlay({element:overlay,location:new OpenSeadragon.Point(nx,ny),placement:OpenSeadragon.OverlayPlacement.CENTER});
     }
 
-    function maybeOpenPopup(id, x, y, popupImage, overlayEl, closeOthers=false){
-      if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
+    function maybeOpenPopup(id,x,y,popupImage,overlayEl,closeOthers=false){
+      if (closeOthers && openPopupId && openPopupId!==id) closePopup(openPopupId);
       if (document.getElementById(`popup-${id}`)) return;
 
-      if (overlayEl) overlayEl.classList.add("is-hidden");
+      // **WICHTIG:** Marker NICHT mehr verstecken – bleibt sichtbar
+      // overlayEl.classList.add("is-hidden");  // entfernt
 
-      const imgSrc = resolvePopupSrc(popupImage);
-      const popup = document.createElement("div");
-      popup.className = "popup";
-      popup.id = `popup-${id}`;
-      popup.innerHTML = imgSrc ? `<img src="${imgSrc}" alt="">` : "";
-      viewer.addOverlay({ element: popup, location: new OpenSeadragon.Point(x, y), placement: OpenSeadragon.OverlayPlacement.BOTTOM });
+      const imgSrc=resolvePopupSrc(popupImage);
+      const popup=document.createElement("div");
+      popup.className="popup";
+      popup.id=`popup-${id}`;
+      popup.innerHTML=imgSrc?`<img src="${imgSrc}" alt="">`:"";
+      viewer.addOverlay({element:popup,location:new OpenSeadragon.Point(x,y),placement:OpenSeadragon.OverlayPlacement.BOTTOM});
 
-      openPopupId = id;
-      if (popupTimers.has(id)) clearTimeout(popupTimers.get(id));
-      popupTimers.set(id, setTimeout(()=>closePopup(id), 10000));
+      openPopupId=id;
+      if(popupTimers.has(id)) clearTimeout(popupTimers.get(id));
+      popupTimers.set(id,setTimeout(()=>closePopup(id),10000));
     }
 
     function closePopup(id){
-      const el = document.getElementById(`popup-${id}`); if (el) el.remove();
-      const dot = document.querySelector(`.hotspot-overlay[data-id="${CSS.escape(id)}"]`);
-      if (dot) dot.classList.remove("is-hidden");
-      if (popupTimers.has(id)) { clearTimeout(popupTimers.get(id)); popupTimers.delete(id); }
-      if (openPopupId === id) openPopupId = null;
+      const el=document.getElementById(`popup-${id}`); if(el) el.remove();
+      // Marker bleibt ohnehin sichtbar
+      if (popupTimers.has(id)){ clearTimeout(popupTimers.get(id)); popupTimers.delete(id); }
+      if (openPopupId===id) openPopupId=null;
     }
 
-    // XML laden (aus /en eine Ebene rauf)
     function loadHotspots(xmlFile){
       fetch(xmlFile).then(r=>r.text()).then(str=>new DOMParser().parseFromString(str,"text/xml"))
       .then(xml=>{
-        const nodes = xml.getElementsByTagName("HOTSPOT");
-        for (let i=0;i<nodes.length;i++){
-          const n = nodes[i];
-          const x = parseFloat(n.getAttribute("X"));
-          const y = parseFloat(n.getAttribute("Y"));
-          const id = n.getAttribute("ID");
-          const icon = n.getAttribute("ICON") || n.getAttribute("ICONURL") || n.getAttribute("MARKER") || "";
-          const popup = n.getAttribute("POPUP") || n.getAttribute("IMAGE") || "";
-          addOverlay(x, y, id, icon, popup);
+        const nodes=xml.getElementsByTagName("HOTSPOT");
+        for(let i=0;i<nodes.length;i++){
+          const n=nodes[i];
+          const x=parseFloat(n.getAttribute("X"));
+          const y=parseFloat(n.getAttribute("Y"));
+          const id=n.getAttribute("ID");
+          const icon=n.getAttribute("ICON")||n.getAttribute("ICONURL")||n.getAttribute("MARKER")||"";
+          const popup=n.getAttribute("POPUP")||n.getAttribute("IMAGE")||"";
+          addOverlay(x,y,id,icon,popup);
         }
         applyHotspotScale();
-      }).catch(err=>console.error("XML error", err));
+      }).catch(err=>console.error("XML error",err));
     }
     loadHotspots("../src/hotspots-en.xml");
   </script>
