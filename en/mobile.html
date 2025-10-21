@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Wimmelbild – Plan:g (Mobile, EN)</title>
+  <title>Wimmelbild – Plan:g (Mobile)</title>
   <link rel="icon" type="image/png" href="../favicon.png" />
   <script src="../openseadragon/openseadragon.min.js"></script>
 
@@ -77,6 +77,7 @@
     .circle{
       width:min(86vw,520px);
       aspect-ratio:1/1;
+      border-radius:0;
       clip-path:circle(50% at 50% 50%);
       background:var(--green-dark);
       overflow:hidden;
@@ -112,7 +113,7 @@
       z-index:1;
     }
 
-    /* Herz oben rechts */
+    /* Heart top right */
     .heart-cta{
       position:absolute;
       top:12px;
@@ -176,7 +177,7 @@
       box-shadow:0 1px 3px rgba(0,0,0,.3);
     }
 
-    /* Popup (nur Bild) */
+    /* Popup (image only) */
     .popup{
       background:transparent;
       padding:0;
@@ -239,18 +240,18 @@
 
   <section class="m-headline">
     <h1>
-      The world is quite small,<br />
+      The world is pretty small,<br />
       health is pretty complex:<br />
-      Have fun exploring.
+      Enjoy exploring.
     </h1>
   </section>
 
-  <section class="circle-wrap" aria-label="Interactive hidden object picture">
+  <section class="circle-wrap" aria-label="Interactive poster">
     <div class="circle" id="circle">
       <!-- Viewer -->
       <div id="myContainer" role="application" aria-label="Wimmelbild viewer"></div>
 
-      <!-- Herz (oben rechts) -->
+      <!-- Heart top right -->
       <a class="heart-cta" href="https://plan-g.at/ueber-uns" target="_blank" rel="noopener" aria-label="About us">
         <img src="../img/signet_bunt.png" alt="" />
       </a>
@@ -271,10 +272,21 @@
   </footer>
 
   <script>
-    /* ====== Pfade ====== */
+    /* ====== Paths (EN) ====== */
     const ASSETS_BASE = "../Assets";
     const ICON_DEFAULT = `${ASSETS_BASE}/button-wim.png`;
-    const POPUPS_DIRS = [`${ASSETS_BASE}/popups-en`];
+    // English popups live in popups-en
+    const POPUPS_EN = `${ASSETS_BASE}/popups-en`;
+
+    // Map any popup path to popups-en (handles filenames, "popups/", "Assets/popups-2/", etc.)
+    function resolvePopupSrc(name){
+      if (!name) return null;
+      if (name.startsWith("../") || name.startsWith("./") || name.startsWith("http")) return name;
+      return name
+        .replace(/^Assets\/popups-?2?\//i, `${POPUPS_EN}/`)
+        .replace(/^popups-?2?\//i, `${POPUPS_EN}/`)
+        .replace(/^[^/]+$/, (file)=> `${POPUPS_EN}/${file}`);
+    }
 
     /* ====== OpenSeadragon ====== */
     const viewer = OpenSeadragon({
@@ -308,7 +320,7 @@
     const circleEl = document.getElementById("circle");
     const containerEl = document.getElementById("myContainer");
 
-    /* ====== Größen/Koordinaten ====== */
+    /* ====== Dimensions/coords ====== */
     const SOURCE_W = 5787, SOURCE_H = 7722;
     const AUTHOR_W = 14344, AUTHOR_H = 19140;
     const Y_EXTRA_SCALE = 1.3348;
@@ -319,7 +331,7 @@
       return { nx, ny };
     }
 
-    /* ====== Responsive Hotspot-Größe ====== */
+    /* ====== Responsive hotspot size ====== */
     function getHotspotSizeParams(){
       if (window.matchMedia("(max-width: 640px)").matches) return { BASE: 14, MIN: 10, MAX: 18 };
       return { BASE: 20, MIN: 14, MAX: 24 };
@@ -343,9 +355,9 @@
       applyHotspotScale();
       hookOsdFullPageButton();
     });
-    setTimeout(hookOsdFullPageButton, 0);
+    setTimeout(hookOsdFullPageButton, 0); // fallback
 
-    /* ====== Vollbild-Logik (wie DE) ====== */
+    /* ====== Fullscreen logic ====== */
     function supportsFullscreen(){
       return !!(circleEl.requestFullscreen || circleEl.webkitRequestFullscreen || circleEl.msRequestFullscreen);
     }
@@ -389,6 +401,7 @@
       applyHotspotScale();
     });
 
+    // Tap/Click → enter fullscreen if needed
     containerEl.addEventListener("touchend", async (e) => {
       if (e.touches && e.touches.length === 0){
         const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
@@ -400,36 +413,74 @@
     }, { passive: false });
     containerEl.addEventListener("click", async () => {
       const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
-      if (!alreadyFs){ await ensureFullscreenIfNeeded(); }
+      if (!alreadyFs){
+        await ensureFullscreenIfNeeded();
+      }
     });
 
     function ensureFullscreenIfNeeded(){
       const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
       if (alreadyFs) return Promise.resolve();
+
       if (supportsFullscreen()){
         return new Promise((resolve) => {
-          const onChange = () => { document.removeEventListener("fullscreenchange", onChange); resolve(); };
+          const onChange = () => {
+            document.removeEventListener("fullscreenchange", onChange);
+            resolve();
+          };
           document.addEventListener("fullscreenchange", onChange);
           enterFullscreen();
         });
       }
-      return new Promise((resolve) => { setFullscreenClasses(true); updatePanBounds(true); resolve(); });
+      return new Promise((resolve) => {
+        setFullscreenClasses(true);
+        updatePanBounds(true);
+        resolve();
+      });
     }
 
+    /* === Make OSD full-screen button reliable === */
     function hookOsdFullPageButton(){
       const root = viewer.container || document.getElementById("myContainer");
       if (!root) return;
-      const btn = root.querySelector('.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]');
+
+      const btn = root.querySelector(
+        '.openseadragon-full-page, .openseadragon-full-screen, [title*="Full"], [title*="Voll"], [title*="page"]'
+      );
       if (!btn || btn.__pgHooked) return;
+
       btn.__pgHooked = true;
+
+      btn.style.touchAction = 'manipulation';
+      btn.style.webkitTapHighlightColor = 'rgba(0,0,0,0)';
+
       const handler = (e) => {
-        e.preventDefault?.(); e.stopPropagation?.(); e.stopImmediatePropagation?.();
-        const inFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
-        if (inFs){ if (supportsFullscreen()) { exitFullscreen(); } else { setFullscreenClasses(false); updatePanBounds(false); applyHotspotScale(); } }
-        else { ensureFullscreenIfNeeded().then(applyHotspotScale); }
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        e.stopImmediatePropagation?.();
+
+        const inFs =
+          (document.fullscreenElement === circleEl) ||
+          document.body.classList.contains("pseudo-fs");
+
+        if (inFs){
+          if (supportsFullscreen()) {
+            exitFullscreen();
+          } else {
+            setFullscreenClasses(false);
+            updatePanBounds(false);
+            applyHotspotScale();
+          }
+        } else {
+          ensureFullscreenIfNeeded().then(() => {
+            applyHotspotScale();
+          });
+        }
       };
+
       const optsTouch = { capture: true, passive: false };
       const optsPointer = { capture: true };
+
       btn.addEventListener("touchstart", handler, optsTouch);
       btn.addEventListener("touchend", handler, optsTouch);
       btn.addEventListener("pointerup", handler, optsPointer);
@@ -438,7 +489,7 @@
 
     /* ====== Popups/Hotspots ====== */
     let openPopupId = null;
-    const popupTimers = new Map();
+    const popupTimers = new Map(); // id -> timeout
 
     function addOverlay(x, y, id, iconUrl, popupImage, popupText, popupTitle, colorValue, offsetX = 0, offsetY = 0) {
       const { nx, ny } = normalizeXY(x, y);
@@ -483,12 +534,7 @@
       maybeOpenPopup(id, nx, ny, popupImage, popupText, popupTitle, overlayEl, true, offsetX, offsetY);
     }
 
-    function resolvePopupSrc(name){
-      if (!name) return null;
-      if (name.includes("/")) return name;
-      return `${POPUPS_DIRS[0]}/${name}`; // EN: always ../Assets/popups-en
-    }
-
+    // render image-only popup
     function maybeOpenPopup(id, x, y, popupImage, popupText, popupTitle, overlayEl, closeOthers = false, offsetX = 0, offsetY = 0){
       if (closeOthers && openPopupId && openPopupId !== id) closePopup(openPopupId);
       if (document.getElementById(`popup-${id}`)) return;
@@ -534,50 +580,48 @@
       if (openPopupId === id) openPopupId = null;
     }
 
-    // EN-XML aus /en eine Ebene rauf
+    // load XML (EN)
     function loadHotspots(xmlFile) {
       fetch(xmlFile)
-        .then(r => r.text())
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status} for ${xmlFile}`);
+          return r.text();
+        })
         .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
         .then(xml => {
-          const nodes = xml.getElementsByTagName("HOTSPOT");
-          for (let i = 0; i < nodes.length; i++) {
-            const node = nodes[i];
-            const x = parseFloat(node.getAttribute("X"));
-            const y = parseFloat(node.getAttribute("Y"));
-            const id = node.getAttribute("ID");
+          // allow <HOTSPOT> and <hotspot>
+          const nodes = xml.querySelectorAll("HOTSPOT, hotspot");
+          if (!nodes.length) console.warn("No HOTSPOT nodes found in", xmlFile);
+
+          nodes.forEach(node => {
+            const attr = (k)=> node.getAttribute(k) ?? node.getAttribute(k.toUpperCase()) ?? node.getAttribute(k.toLowerCase());
+
+            const x = parseFloat(attr("X"));
+            const y = parseFloat(attr("Y"));
+            const id = attr("ID") || `${x}-${y}`;
 
             const iconUrl =
-              node.getAttribute("ICON") ||
-              node.getAttribute("ICONURL") ||
-              node.getAttribute("ICON_URL") ||
-              node.getAttribute("MARKER") ||
-              node.getAttribute("MEDIA") ||
-              "";
+              attr("ICON") || attr("ICONURL") || attr("ICON_URL") ||
+              attr("MARKER") || attr("MEDIA") || "";
 
             const popupImage =
-              node.getAttribute("POPUP") ||
-              node.getAttribute("POPUPIMG") ||
-              node.getAttribute("IMAGE") ||
-              "";
-
-            const popupText = "";
-            const popupTitle = "";
+              attr("POPUP") || attr("POPUPIMG") || attr("IMAGE") || "";
 
             const colorValue =
-              node.getAttribute("COLOR") ||
-              node.getAttribute("COLOUR") ||
-              node.getAttribute("FARBE") ||
-              node.getAttribute("FILL") ||
-              node.getAttribute("BG") ||
-              node.getAttribute("DOTCOLOR") ||
-              null;
+              attr("COLOR") || attr("COLOUR") || attr("FARBE") ||
+              attr("FILL") || attr("BG") || attr("DOTCOLOR") || null;
 
-            const offsetX = parseInt(node.getAttribute("POPOFFSETX") || "0", 10);
-            const offsetY = parseInt(node.getAttribute("POPOFFSETY") || "0", 10);
+            const offsetX = parseInt(attr("POPOFFSETX") || "0", 10);
+            const offsetY = parseInt(attr("POPOFFSETY") || "0", 10);
 
-            addOverlay(x, y, id, iconUrl || ICON_DEFAULT, popupImage, popupText, popupTitle, colorValue, offsetX, offsetY);
-          }
+            if (Number.isFinite(x) && Number.isFinite(y)) {
+              addOverlay(x, y, id, iconUrl || ICON_DEFAULT, popupImage, "", "", colorValue, offsetX, offsetY);
+            } else {
+              console.warn("Skipping hotspot with invalid coords:", { id, x, y });
+            }
+          });
+
+          console.log(`Loaded ${document.querySelectorAll(".hotspot-overlay").length} hotspots from ${xmlFile}`);
           applyHotspotScale();
         })
         .catch(err => console.error("Error loading XML:", err));
@@ -585,6 +629,7 @@
 
     loadHotspots("../src/hotspots-en.xml");
 
+    // helpers
     function focusOn(nx, ny, zoomFactor = 1.6){
       const ref = new OpenSeadragon.Point(nx, ny);
       viewer.viewport.panTo(ref, true);
