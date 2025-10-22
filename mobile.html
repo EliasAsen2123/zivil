@@ -84,7 +84,12 @@
       position:relative;
       box-shadow:0 8px 28px rgba(0,0,0,.18);
     }
-        .circle.is-fullscreen{
+    /* CHG: Fallback für iOS/Safari ohne aspect-ratio */
+    @supports not (aspect-ratio: 1 / 1) {
+      .circle{ height:min(86vw,520px); }
+    }
+
+    .circle.is-fullscreen{
       clip-path:none;
       border-radius:0;
       width:100vw;
@@ -93,16 +98,28 @@
     }
 
     .pseudo-fs .circle{
-    clip-path:none!important;
-    border-radius:0!important;
-    position:fixed!important;
-    inset:0!important;
-    width:100vw!important;
-    height:100vh!important;
-    background:var(--green-dark)!important; 
-    z-index:998!important;
-  }
+      clip-path:none!important;
+      border-radius:0!important;
+      position:fixed!important;
+      inset:0!important;
+      width:100vw!important;
+      height:100vh!important;
+      background:var(--green-dark)!important; 
+      z-index:998!important;
+    }
 
+    /* CHG: OSD-Ebenen konsistent stapeln */
+    .openseadragon-container{ position:absolute; inset:0; }
+    .openseadragon-container .openseadragon-canvas{
+      z-index:0 !important;
+    }
+    .openseadragon-container .openseadragon-overlay,
+    .hotspot-overlay,
+    .popup{
+      z-index:10 !important;
+      pointer-events:auto !important;
+      transform: translateZ(0); /* iOS Compositing */
+    }
 
     #myContainer{
       position:absolute;
@@ -112,6 +129,7 @@
       background:transparent;
       touch-action:manipulation;
       z-index:1;
+      min-height:200px; /* CHG: Safety gegen 0px-Container */
     }
 
     /* Herz oben rechts */
@@ -303,7 +321,19 @@
       constrainDuringPan: true,
       minZoomImageRatio: 1,
       maxZoomPixelRatio: 2.0,
-      immediateRender: true
+      immediateRender: true,
+
+      /* CHG: Gesten – Klick-Zoom deaktivieren, damit Taps nicht "verschluckt" werden */
+      gestureSettingsTouch: {
+        pinchToZoom: true,
+        flickEnabled: true,
+        clickToZoom: false,
+        dblClickToZoom: false
+      },
+      gestureSettingsMouse: {
+        clickToZoom: false,
+        dblClickToZoom: false
+      }
     });
 
     /* ====== DOM-Refs ====== */
@@ -397,18 +427,18 @@
       applyHotspotScale();
     });
 
-    // Tap/Click → ggf. Vollbild
+    /* CHG: Nur Hintergrund-Taps starten Vollbild – nicht Hotspots */
     containerEl.addEventListener("touchend", async (e) => {
-      if (e.touches && e.touches.length === 0){
-        const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
-        if (!alreadyFs){
-          e.preventDefault();
-          await ensureFullscreenIfNeeded();
-        }
+      if (e.target !== containerEl) return;                // CHG
+      const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
+      if (!alreadyFs){
+        e.preventDefault();
+        await ensureFullscreenIfNeeded();
       }
     }, { passive: false });
 
-    containerEl.addEventListener("click", async () => {
+    containerEl.addEventListener("click", async (e) => {
+      if (e.target !== containerEl) return;                // CHG
       const alreadyFs = (document.fullscreenElement === circleEl) || document.body.classList.contains("pseudo-fs");
       if (!alreadyFs){
         await ensureFullscreenIfNeeded();
@@ -507,11 +537,15 @@
       }
 
       const open = async (e) => {
-        e.stopPropagation();
+        /* CHG: Reihenfolge & Stoppen – wichtig für iOS */
         e.preventDefault?.();
+        e.stopPropagation?.();
         await handleHotspotTap(nx, ny, id, popupImage, popupText, popupTitle, overlay, offsetX, offsetY);
       };
+      /* CHG: Stabilisiert Click-Synthese auf iOS */
+      overlay.addEventListener("touchstart", () => {}, { passive: true });
       overlay.addEventListener("touchend", open, { passive: false });
+      overlay.addEventListener("pointerup", open, { passive: true });
       overlay.addEventListener("click", open, { passive: true });
 
       viewer.addOverlay({
@@ -595,7 +629,7 @@
             const node = nodes[i];
             const x = parseFloat(node.getAttribute("X"));
             const y = parseFloat(node.getAttribute("Y"));
-            const id = node.getAttribute("ID"); /* <-- FIX HIER */
+            const id = node.getAttribute("ID");
 
             const iconUrl =
               node.getAttribute("ICON") ||
