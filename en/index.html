@@ -1,54 +1,29 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Wimmelbild – Weiterleitung</title>
+  <title>Wimmelbild – Redirect</title>
   <script>
     (function() {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       const isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
       const isSmall = window.innerWidth < 900;
 
-      // Sprach-Pfad prüfen (/en, /de, ...)
-      const path = window.location.pathname.toLowerCase();
-
-      // URL-Parameter prüfen (z. B. ?desktop oder ?mobile)
       const params = new URLSearchParams(window.location.search);
-      const forceDesktop = params.has('desktop');
-      const forceMobile = params.has('mobile');
+      if (params.has('desktop')) { window.location.href = 'desktop.html'; return; }
+      if (params.has('mobile'))  { window.location.href = 'mobile.html';  return; }
 
-      // Funktion zum Weiterleiten
-      function goTo(page) {
-        window.location.href = page;
-      }
-
-      // Sprachlogik
-      if (path.endsWith('/en') || path.endsWith('/en/')) {
-        // ENGLISCHE Version
-        if (forceDesktop) return goTo('en/desktop.html');
-        if (forceMobile) return goTo('en/mobile.html');
-        if (isMobile || isSmall) return goTo('en/mobile.html');
-        return goTo('en/desktop.html');
+      if (isMobile || isSmall) {
+        window.location.href = 'mobile.html';
       } else {
-        // DEUTSCHE Version (Standard)
-        if (forceDesktop) return goTo('desktop.html');
-        if (forceMobile) return goTo('mobile.html');
-        if (isMobile || isSmall) return goTo('mobile.html');
-        return goTo('desktop.html');
+        window.location.href = 'desktop.html';
       }
     })();
   </script>
 </head>
 <body style="background:#f3f3f3;font-family:sans-serif;text-align:center;padding-top:20vh;">
-  <h2>Wimmelbild wird geladen …</h2>
-  <p>Falls nichts passiert, 
-    <a href="desktop.html">hier zur Desktop-Version</a> oder 
-    <a href="mobile.html">zur Mobile-Version</a>.
-  </p>
-  <p>Englisch: 
-    <a href="en/desktop.html">Desktop</a> | 
-    <a href="en/mobile.html">Mobile</a>
-  </p>
+  <h2>Loading…</h2>
+  <p>If nothing happens, go to <a href="desktop.html">Desktop</a> or <a href="mobile.html">Mobile</a>.</p>
 </body>
 </html>
